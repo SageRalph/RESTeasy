@@ -30,7 +30,7 @@ Name          | Type      |               | Description
 endpoint      |`string`   | **Required**  | The REST API endpoint for this resource.
 tableElement  |`<table>`  | **Required**  | An HTML `<table>` for listing records, record can be selected for editing by selecting them in this table. <br>The table must have a `<tbody>`.
 tableFields   |`string[]` | **Required**  | An array of field names corisponding to each table column.
-formElement   |`<form>`   | **Required**  | An HTML `<form>` for editing records. <br>The form must have an `<input>` with name equal to idField. <br>e.g. `<input type="hidden" name="id"></input>`
+formElement   |`<form>`   | **Required**  | An HTML `<form>` for editing records. <br>The form must have an `<input>` with name equal to idField. <br>e.g. `<input type="hidden" name="id">`
 searchElement | `<input>` | Optional      | An HTML `<input>` for the search term. <br>This can be any element with a `.value` property.
 searchParam   | `string`  | Optional      | The querystring parameter name for the search term.
 statusElement | `<p>`     | Optional      | An HTML element for displaying status and errors. <br>This can be any element with a `.innerText` property.
@@ -40,3 +40,43 @@ idField       |`string`   | Optional      | The name of the id field for records
 
 If RESTeasy is not initialised correctly it will let you know what's wrong in the browser console.
 
+### Form Design
+RESTeasy allows editing records using a HTML `<form>`.  
+The minimum requirement is a form containin an input with name equal to idField.  
+```
+<form id="myform">
+  <input type="hidden" name="id">
+</form>
+```
+You can add your resource's fields as normal form inputs. RESTeasy does not require any use of classes or ids to identify most fields.
+
+#### Custom parsing
+RESTeasy uses custom form parsing which works a little diffrently from normal form serialization.  
+Here are the important differences:
+
+- You can specify sub-properties by putting `.`s in an input's name attribute.   
+e.g.   
+`<input type="text" name="company.address.postcode" value="ABC123">`  
+Produces:   
+`{ company: { address: { postcode: "ABC123" } } }`
+
+- Checkbox values will always appear in output.   
+i.e. an unchecked checkbox will have the value false rather than being ommited from the record.   
+e.g.   
+`<input type="checkbox" name="mybool">`   
+Produces:   
+`{ mybool: false }`
+
+- Array editing is supported in `<textarea>`s by adding the class `formatArray`.   
+Each line is treated as an array item.   
+e.g.   
+`<textarea name="tags" class="formatArray" value="REST\nclient\nlibrary"></textarea>`   
+Produces:   
+`{ tags: ["REST", "client", "library"] }`
+
+- JSON editing is supported in `<textarea>`s by adding the class `formatJSON`.   
+`JSON.parse()` is used to read the content. If parsing fails, the field will be ommited.      
+e.g.   
+`<textarea name="myjsonfield" class="formatJSON" value="{ a: { b: 'c' } }"></textarea>`   
+Produces:   
+`{ myjsonfield: { a: { b: 'c' } } }`
