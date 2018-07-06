@@ -80,12 +80,14 @@
 
     <script>
         resteasy({
+            // Required
             endpoint: 'https://jsonplaceholder.typicode.com/users',
             tableElement: document.getElementById('usertable'),
             tableFields: ['username', 'name'],
+            formElement: document.getElementById('userform'),
+            // Optional
             searchElement: document.getElementById('usersearch'),
             searchParam: 'search',
-            formElement: document.getElementById('userform'),
             statusElement: document.getElementById('userstatus'),
             deleteElement: document.getElementById('userdeletebutton'),
             createElement: document.getElementById('usercreatebutton'),

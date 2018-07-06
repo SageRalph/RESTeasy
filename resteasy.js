@@ -3,17 +3,32 @@
  * @param {string} endpoint REST API endpoint
  * @param {<table>} tableElement Table for listing records
  * @param {string[]} tableFields Record fields for each table column
+ * @param {<form>} formElement Form for editing record
  * @param {<input>} searchElement Input for search term
  * @param {string} searchParam API parameter name for search term
- * @param {<form>} formElement Form for editing record
  * @param {<p>} statusElement Text element for displaying status and errors
  * @param {<button>} deleteElement Button for deleting records
  * @param {<button>} createElement Button for creating records
  * @param {string} idField Name of field holding record id
  */
-function resteasy({ endpoint, tableElement, tableFields, searchElement, searchParam, formElement, statusElement, deleteElement, createElement, idField }) {
+function resteasy({
+    endpoint, tableElement, tableFields, formElement,
+    searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id' }) {
 
     // BINDINGS ----------------------------------------------------------------
+
+    if (typeof endpoint !== 'string' || !endpoint.length)
+        throw 'Invalid endpoint passed to RESTeasy: must be non-empty string';
+    if (!(tableElement instanceof HTMLElement) || tableElement.nodeName !== 'TABLE')
+        throw 'Invalid tableElement passed to RESTeasy: must be a <table> object';
+    if (!Array.isArray(tableFields))
+        throw 'Invalid tableFields passed to RESTeasy: must be an array';
+    if (!(formElement instanceof HTMLElement) || formElement.nodeName !== 'FORM')
+        throw 'Invalid endpoint passed to RESTeasy: must be a <form> object';
+    if (!tableElement.tBodies.length)
+        throw 'tableElement passed to RESTeasy is missing <tbody>';
+    if (!formElement.elements[idField])
+        throw 'formElement passed to RESTeasy is missing <input name=[idField]>';
 
     const tbody = tableElement.tBodies[0];
     const fid = formElement.elements[idField];
@@ -193,7 +208,7 @@ function resteasy({ endpoint, tableElement, tableFields, searchElement, searchPa
                 url += '/' + fid.value;
             }
 
-            const data = _readFormFields(formElement);
+            const data = _readFormFields();
 
             const response = await fetch(url, {
                 headers,
