@@ -13,7 +13,7 @@
  */
 function resteasy({
     endpoint, tableElement, tableFields, formElement,
-    searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id' }) {
+    searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', headers = {} }) {
 
     // BINDINGS ----------------------------------------------------------------
 
@@ -29,12 +29,13 @@ function resteasy({
         throw 'tableElement passed to RESTeasy is missing <tbody>';
     if (!formElement.elements[idField])
         throw 'formElement passed to RESTeasy is missing <input name=[idField]>';
+    if (typeof headers !== 'object')
+        throw 'headers passed to RESTeasy was not an object';
 
     const tbody = tableElement.tBodies[0];
     const fid = formElement.elements[idField];
-    const headers = {
-        'Content-Type': 'application/json'
-    };
+
+    if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
     formElement.onsubmit = function (e) {
         e.preventDefault();
