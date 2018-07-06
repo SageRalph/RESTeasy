@@ -37,6 +37,7 @@ statusElement | `<p>`     | Optional      | An HTML element for displaying statu
 deleteElement |`<button>` | Optional      | An HTML control for deleting the selected record. <br>This can be any element which fires a `submit` event.
 createElement |`<button>` | Optional      | An HTML control for creating new records. <br>This can be any element which fires a `submit` event.
 idField       |`string`   | Optional      | The name of the id field for records, defaults to "id". <br>RESTeasy will not function if this is not correct. <br>If your database is MongoDB, this is usually "_id".
+headers       | `object`  | Optional      | An object containing headers to include in all requests. <br>Content-type will default to `application/json` if not set.
 
 If RESTeasy is not initialised correctly it will let you know what's wrong in the browser console.
 
