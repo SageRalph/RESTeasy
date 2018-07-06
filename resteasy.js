@@ -200,6 +200,9 @@ function resteasy({
 
             _writeFormFields(record);
 
+            // Clear any errors
+            highlightErrors({});
+
             return record;
 
         } catch (err) {
@@ -232,6 +235,7 @@ function resteasy({
             const resJSON = await response.json();
 
             if (!response.ok) {
+                highlightErrors(resJSON.errors);
                 throw resJSON;
             }
 
@@ -267,6 +271,16 @@ function resteasy({
         else if (typeof status === 'object' && status.statusMessage) status = status.statusMessage;
         else if (typeof status !== 'string') status = JSON.stringify(val, null, 2);
         statusElement.innerText = status;
+    }
+
+    /**
+     * Highlights erroneous fields in formElement.
+     */
+    function highlightErrors(errors) {
+        const elements = formElement.elements;
+        for (let item of elements) {
+            item.className = errors.hasOwnProperty(item.name) ? 'invalidField' : '';
+        }
     }
 
     /**
