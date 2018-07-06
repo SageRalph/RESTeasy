@@ -53,7 +53,7 @@ If a hook throws an error, the life-cycle operation will continue and the failur
 
 Name            | Description
 --------------- | -------------- 
-preSearch       | Called with the term to search with (if any). <br>Allows modification of query before the request is sent. <br>Note: There is no postSearch event as searching is immediately followed by updateTable. The response to the query can be obtained from preUpdateTable. This hook will be run even if searchElement is not set, allowing for programmatic query generation.
+preSearch       | Called with the term to search with (if any). <br>Allows modification of query before the request is sent. <br>*Note: There is no postSearch event as searching is immediately followed by updateTable. The response to the query can be obtained from preUpdateTable.* <br>*Note 2: This hook will be run even if searchElement is not set, allowing for programmatic query generation.*
 preUpdateTable  | Called with the array of search results to be displayed. <br>Allows modification of results before they are written to the table.
 postUpdateTable | Called with the array of search results displayed.
 preUpdateForm   | Called with the resource to be written. <br>Allows modification of the resource before it is written to the form.
