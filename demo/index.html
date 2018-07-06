@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>RESTeasy Demo</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="style.css" type="text/css" />
+    <script src="../resteasy.js"></script>
+</head>
+
+<body>
+
+    <h1>RESTeasy Demo</h1>
+    <p>This is an example usage of the RESTeasy library.</p>
+    <p>RESTeasy lets you focus on markup and styling by abstracting away all the boilerplate JavaScript for communicating with your REST API.</p>
+
+    <input type="search" placeholder="Search..." id="usersearch">
+
+    <table id="usertable">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <input type="button" value="Add New" id="usercreatebutton">
+    <input type="button" value="Delete Selected" id="userdeletebutton">
+
+    <p id="userstatus"></p>
+
+    <h1>User Details</h1>
+
+    <form id="userform">
+        <input type="hidden" name="id">
+        <label>
+            <span>Username</span>
+            <input type="text" name="username" required>
+        </label>
+        <label>
+            <span>Name</span>
+            <input type="text" name="name" required>
+        </label>
+        <label>
+            <span>Email</span>
+            <input type="email" name="email">
+        </label>
+
+        <h3>Address</h3>
+        <label>
+            <span>Street</span>
+            <input type="text" name="address.street">
+        </label>
+        <label>
+            <span>City</span>
+            <input type="text" name="address.city">
+        </label>
+        <label>
+            <span>Zipcode</span>
+            <input type="string" name="address.zipcode">
+        </label>
+
+        <h3>Company</h3>
+        <label>
+            <span>Name</span>
+            <input type="text" name="company.name">
+        </label>
+        <label>
+            <span>Catchphrase</span>
+            <input type="text" name="company.catchPhrase">
+        </label>
+
+        <span>
+            <input type="submit" value="Save">
+            <input type="reset" value="Reset">
+        </span>
+    </form>
+
+    <script>
+        resteasy({
+            endpoint: 'https://jsonplaceholder.typicode.com/users',
+            tableElement: document.getElementById('usertable'),
+            tableFields: ['username', 'name'],
+            searchElement: document.getElementById('usersearch'),
+            searchParam: 'search',
+            formElement: document.getElementById('userform'),
+            statusElement: document.getElementById('userstatus'),
+            deleteElement: document.getElementById('userdeletebutton'),
+            createElement: document.getElementById('usercreatebutton'),
+            idField: 'id'
+        });    
+    </script>
+
+</body>
+
+</html>
