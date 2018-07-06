@@ -365,3 +365,14 @@ function deepSet(obj, path, value) {
     cursor[parts.pop()] = value;
     return obj;
 }
+
+/**
+ * Converts a JSON date string to a HTML date string.
+ */
+function htmlDate(str) {
+    const date = new Date(str);
+    const d = ("0" + date.getDate()).slice(-2);
+    const m = ("0" + (date.getMonth() + 1)).slice(-2);
+    const y = date.getFullYear();
+    return y + "-" + m + "-" + d;
+}
