@@ -34,6 +34,7 @@ function resteasy({
 
     const tbody = tableElement.tBodies[0];
     const fid = formElement.elements[idField];
+    const endpointBase = endpoint.includes('?') ? endpoint.split('?')[0] : endpoint;
 
     if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
@@ -114,10 +115,12 @@ function resteasy({
     async function actionSave() {
         _updateStatus('Working...');
         const record = await _save();
-        await _updateForm({ record });
-        await _updateTable();
-        _updateSelected(record[idField]);
-        _updateStatus('Item saved');
+        if (record) {
+            await _updateForm({ record });
+            await _updateTable();
+            _updateSelected(record[idField]);
+            _updateStatus('Item saved');
+        }
     }
 
     /**
@@ -156,7 +159,12 @@ function resteasy({
             }
 
             const response = await fetch(url, { headers });
-            const data = await response.json();
+            let data = await response.json();
+
+            if (!response.ok) throw (data);
+
+            // Support either [item] or {results:[{item}]}
+            if (data.results) data = data.results;
 
             // Update table
             tbody.innerHTML = data.map(row =>
@@ -181,7 +189,7 @@ function resteasy({
 
             // Support find by id
             if (!record && id) {
-                const data = await fetch(endpoint + '/' + id, { headers });
+                const data = await fetch(endpointBase + '/' + id, { headers });
                 const datajson = await data.json();
                 // Support either {item} or {results:[{item}]}
                 record = datajson.results ? datajson.results[0] : datajson;
@@ -207,7 +215,7 @@ function resteasy({
         try {
             // Determine method and URL for create/update
             let method = 'POST';
-            let url = endpoint;
+            let url = endpointBase;
             if (fid.value) {
                 method = 'PUT';
                 url += '/' + fid.value;
@@ -222,6 +230,10 @@ function resteasy({
             });
 
             const resJSON = await response.json();
+
+            if (!response.ok) {
+                throw resJSON;
+            }
 
             // Support either {item} or {results:[{item}]}
             return resJSON.results ? resJSON.results[0] : resJSON;
@@ -238,7 +250,7 @@ function resteasy({
         try {
             if (!fid.value) return; // NEVER DELETE endpoint/
 
-            const url = endpoint + '/' + fid.value;
+            const url = endpointBase + '/' + fid.value;
             await fetch(url, { headers, method: 'DELETE' });
 
         } catch (err) {
