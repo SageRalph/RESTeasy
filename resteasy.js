@@ -148,7 +148,11 @@ function resteasy({
         try {
             // Support searching
             let url = endpoint;
-            if (searchElement.value) url += '?' + searchParam + '=' + searchElement.value;
+            if (searchElement.value) {
+                // Support endpoints with other query parameters
+                url += url.includes('?') ? '&' : '?';
+                url += searchParam + '=' + searchElement.value;
+            }
 
             const response = await fetch(url, { headers });
             const data = await response.json();
