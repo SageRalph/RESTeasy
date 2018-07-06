@@ -39,7 +39,27 @@ createElement |`<button>` | Optional      | An HTML control for creating new rec
 idField       |`string`   | Optional      | The name of the id field for records, defaults to "id". <br>RESTeasy will not function if this is not correct. <br>If your database is MongoDB, this is usually "_id".
 headers       | `object`  | Optional      | An object containing headers to include in all requests. <br>Content-type will default to `application/json` if not set.
 
-If RESTeasy is not initialised correctly it will let you know what's wrong in the browser console.
+If RESTeasy is not initialized correctly it will let you know what's wrong in the browser console.
+
+#### Life-cycle hooks
+RESTeasy also supports life-cycle hooks. These are optional functions you can pass as parameters on initialization.    
+Hooks should be awaitable functions (either synchronous or return a promise) and will be called with relevant data each time the life-cycle event occurs.   
+
+There are two types of hooks: pre and post. pre hooks give the opportunity to modify data before an action is performed. post hooks allow you to react to actions.    
+
+Both types of hooks will be passed a data object as a parameter, pre hooks may return a modified data object. If a pre hook does not return anything or throws an error the data will continue unmodified.   
+
+If a hook throws an error, the life-cycle operation will continue and the failure will be logged to the browser console. post hooks will only be run if the life-cycle operation was successful.     
+
+Name            | Description
+--------------- | -------------- 
+preSearch       | Called with the term to search with (if any). <br>Allows modification of query before the request is sent. <br>Note: There is no postSearch event as searching is immediately followed by updateTable. The response to the query can be obtained from preUpdateTable. This hook will be run even if searchElement is not set, allowing for programmatic query generation.
+preUpdateTable  | Called with the array of search results to be displayed. <br>Allows modification of results before they are written to the table.
+postUpdateTable | Called with the array of search results displayed.
+preUpdateForm   | Called with the resource to be written. <br>Allows modification of the resource before it is written to the form.
+postUpdateForm  | Called with the resource that was written to the form.
+preSave         | Called with the resource to be saved. <br>Allows modification of the resource before it is saved.
+postSave        | Called with the response from saving the resource. 
 
 ### Form Design
 RESTeasy allows editing records using a HTML `<form>`.  

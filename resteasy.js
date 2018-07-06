@@ -13,7 +13,8 @@
  */
 function resteasy({
     endpoint, tableElement, tableFields, formElement,
-    searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', headers = {} }) {
+    searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', headers = {},
+    preSearch, preUpdateTable, preUpdateForm, preSave, postUpdateTable, postUpdateForm, postSave }) {
 
     // BINDINGS ----------------------------------------------------------------
 
@@ -152,10 +153,14 @@ function resteasy({
         try {
             // Support searching
             let url = endpoint;
-            if (searchElement.value) {
+            let searchValue = searchElement.value;
+
+            searchValue = await _doHook(preSearch, searchValue);
+
+            if (searchValue) {
                 // Support endpoints with other query parameters
                 url += url.includes('?') ? '&' : '?';
-                url += searchParam + '=' + searchElement.value;
+                url += searchParam + '=' + searchValue;
             }
 
             const response = await fetch(url, { headers });
@@ -166,11 +171,15 @@ function resteasy({
             // Support either [item] or {results:[{item}]}
             if (data.results) data = data.results;
 
+            data = await _doHook(preUpdateTable, data);
+
             // Update table
             tbody.innerHTML = data.map(row =>
                 '<tr id=' + row[idField] + '>' + tableFields.map(field => '<td>' + row[field] + '</td>').join('') + '</tr>'
             ).join('');
             Array.from(tableElement.rows).map(row => row.addEventListener("click", actionSelect.bind(row, row.id)));
+
+            await _doHook(postUpdateTable, data);
 
         } catch (err) {
             _updateStatus(err || 'Failed to load records');
@@ -198,10 +207,14 @@ function resteasy({
             // Support reset
             if (!record) record = {};
 
+            record = await _doHook(preUpdateForm, record);
+
             _writeFormFields(record);
 
             // Clear any errors
-            highlightErrors({});
+            _highlightErrors({});
+
+            await _doHook(postUpdateForm, record);
 
             return record;
 
@@ -224,7 +237,9 @@ function resteasy({
                 url += '/' + fid.value;
             }
 
-            const data = _readFormFields();
+            let data = _readFormFields();
+
+            data = await _doHook(preSave, data);
 
             const response = await fetch(url, {
                 headers,
@@ -235,12 +250,16 @@ function resteasy({
             const resJSON = await response.json();
 
             if (!response.ok) {
-                highlightErrors(resJSON.errors);
+                _highlightErrors(resJSON.errors);
                 throw resJSON;
             }
 
             // Support either {item} or {results:[{item}]}
-            return resJSON.results ? resJSON.results[0] : resJSON;
+            const result = resJSON.results ? resJSON.results[0] : resJSON
+
+            await _doHook(postUpdateForm, result);
+
+            return result;
 
         } catch (err) {
             _updateStatus(err || 'Failed to save record');
@@ -276,7 +295,7 @@ function resteasy({
     /**
      * Highlights erroneous fields in formElement.
      */
-    function highlightErrors(errors) {
+    function _highlightErrors(errors) {
         const elements = formElement.elements;
         for (let item of elements) {
             item.className = errors.hasOwnProperty(item.name) ? 'invalidField' : '';
@@ -352,6 +371,21 @@ function resteasy({
             obj = deepSet(obj, item.name, value);
         }
         return obj;
+    }
+
+    /**
+     * Executes hook with data if it is a function, otherwise returns data.
+     * Returns the result of the hook, or data if nothing is returned.
+     * Failed hooks will be caught and logged, data will be returned.
+     */
+    async function _doHook(hook, data) {
+        try {
+            if (typeof hook === 'function') return await hook(data) || data;
+            else return data;
+        } catch (err) {
+            console.error('Failed to run hook\n', err);
+            return data;
+        }
     }
 
 }

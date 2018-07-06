@@ -91,7 +91,11 @@
             statusElement: document.getElementById('userstatus'),
             deleteElement: document.getElementById('userdeletebutton'),
             createElement: document.getElementById('usercreatebutton'),
-            idField: 'id'
+            idField: 'id',
+            preUpdateTable: data => data.map(item => {
+                item.name = item.name.toUpperCase();
+                return item;
+            })
         });    
     </script>
 
