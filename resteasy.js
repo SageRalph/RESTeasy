@@ -347,8 +347,8 @@ function resteasy({
         const elements = formElement.elements;
         for (let item of elements) {
 
-            // Ignore unnamed controls
-            if (!item.name) continue;
+            // Ignore unnamed or disabled controls
+            if (!item.name || item.disabled) continue;
 
             let value = item.value;
 
