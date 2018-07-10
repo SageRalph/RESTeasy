@@ -261,7 +261,7 @@ function resteasy({
             // Support either {item} or {results:[{item}]}
             const result = resJSON.results ? resJSON.results[0] : resJSON
 
-            await _doHook(postUpdateForm, result);
+            await _doHook(postSave, result);
 
             return result;
 
