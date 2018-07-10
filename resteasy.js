@@ -164,7 +164,11 @@ function resteasy({
             }
 
             const response = await fetch(url, { headers });
-            let data = await response.json();
+            // Support 204 (no content) when no results
+            let data = [];
+            if (response.status !== 204) {
+                data = await response.json();
+            }
 
             if (!response.ok) throw (data);
 
