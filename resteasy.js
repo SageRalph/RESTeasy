@@ -163,17 +163,7 @@ function resteasy({
                 url += searchParam + '=' + searchValue;
             }
 
-            const response = await fetch(url, { headers });
-            // Support 204 (no content) when no results
-            let data = [];
-            if (response.status !== 204) {
-                data = await response.json();
-            }
-
-            if (!response.ok) throw (data);
-
-            // Support either [item] or {results:[{item}]}
-            if (data.results) data = data.results;
+            let data = await fetchJSON(url, { headers }, { array: true });
 
             data = await _doHook(preUpdateTable, data);
 
@@ -202,10 +192,7 @@ function resteasy({
 
             // Support find by id
             if (!record && id) {
-                const data = await fetch(endpointBase + '/' + id, { headers });
-                const datajson = await data.json();
-                // Support either {item} or {results:[{item}]}
-                record = datajson.results ? datajson.results[0] : datajson;
+                record = await fetchJSON(endpointBase + '/' + id, { headers }, { first: true });
             }
 
             // Support reset
@@ -245,21 +232,17 @@ function resteasy({
 
             data = await _doHook(preSave, data);
 
-            const response = await fetch(url, {
-                headers,
-                method,
-                body: JSON.stringify(data)
-            });
-
-            const resJSON = await response.json();
-
-            if (!response.ok) {
-                _highlightErrors(resJSON.errors);
-                throw resJSON;
+            let result;
+            try {
+                result = await fetchJSON(url, {
+                    headers,
+                    method,
+                    body: JSON.stringify(data)
+                }, { first: true });
+            } catch (err) {
+                _highlightErrors(err.errors || err.error || err);
+                throw err;
             }
-
-            // Support either {item} or {results:[{item}]}
-            const result = resJSON.results ? resJSON.results[0] : resJSON
 
             await _doHook(postSave, result);
 
@@ -278,7 +261,8 @@ function resteasy({
             if (!fid.value) return; // NEVER DELETE endpoint/
 
             const url = endpointBase + '/' + fid.value;
-            await fetch(url, { headers, method: 'DELETE' });
+
+            let data = await fetchJSON(url, { headers, method: 'DELETE' }, { first: true });
 
         } catch (err) {
             _updateStatus(err || 'Failed to delete record');
@@ -444,4 +428,34 @@ function htmlDate(str) {
     const m = ("0" + (date.getMonth() + 1)).slice(-2);
     const y = date.getFullYear();
     return y + "-" + m + "-" + d;
+}
+
+async function fetchJSON(url, options, { array, first }) {
+    const response = await fetch(url, options);
+
+    let data = {};
+
+    // Support 204 (no content) when no results
+    if (response.status === 204) return array ? [] : undefined;
+
+    data = await response.json();
+
+    // Check for HTTP error
+    if (!response.ok) throw data;
+
+    // Support either [item] or {results:[{item}]}
+    if (array && Array.isArray(data)) return data;
+    if (array && Array.isArray(data.results)) return data.results;
+    if (array) return [];
+
+    if (first && Array.isArray(data)) {
+        if (!data.length) return;
+        return data[0];
+    }
+    if (first && Array.isArray(data.results)) {
+        if (!data.results.length) return;
+        return data.results[0];
+    }
+
+    return data;
 }
