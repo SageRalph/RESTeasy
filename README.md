@@ -49,7 +49,7 @@ There are two types of hooks: pre and post. pre hooks give the opportunity to mo
 
 Both types of hooks will be passed a data object as a parameter, pre hooks may return a modified data object. If a pre hook does not return anything or throws an error the data will continue unmodified.   
 
-If a hook throws an error, the life-cycle operation will continue and the failure will be logged to the browser console. post hooks will only be run if the life-cycle operation was successful.     
+If a hook throws an error, the life-cycle operation will be interrupted and the failure will be logged to the browser console and displayed in statusElement. post hooks will only be run if the life-cycle operation (and any pre hooks) was successful.     
 
 Name            | Description
 --------------- | -------------- 
@@ -60,6 +60,8 @@ preUpdateForm   | Called with the resource to be written. <br>Allows modificatio
 postUpdateForm  | Called with the resource that was written to the form.
 preSave         | Called with the resource to be saved. <br>Allows modification of the resource before it is saved.
 postSave        | Called with the response from saving the resource. 
+preDelete       | Called with the id of the resource to be deleted. If no id is returned the request will not be sent.<br>*Note: This hook will be run even if no element is selected, allowing for programmatic selection.*
+postDelete      | Called with the response from deleting the resource. 
 
 ### Form Design
 RESTeasy allows editing records using a HTML `<form>`.  

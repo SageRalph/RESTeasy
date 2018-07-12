@@ -81,7 +81,7 @@
     <script>
         resteasy({
             // Required
-            endpoint: 'https://jsonplaceholder.typicode.com/users',
+            endpoint: 'http://jsonplaceholder.typicode.com/users',
             tableElement: document.getElementById('usertable'),
             tableFields: ['username', 'name'],
             formElement: document.getElementById('userform'),
@@ -95,7 +95,11 @@
             preUpdateTable: data => data.map(item => {
                 item.name = item.name.toUpperCase();
                 return item;
-            })
+            }),
+            preDelete: id => {
+                if (!confirm('Are you sure you want to delete this item?')) throw 'Action cancelled';
+                return id;
+            }
         });    
     </script>
 

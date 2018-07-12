@@ -1,20 +1,20 @@
 /**
  * Initializes a resteasy editor.
  * @param {string} endpoint REST API endpoint
- * @param {<table>} tableElement Table for listing records
- * @param {string[]} tableFields Record fields for each table column
- * @param {<form>} formElement Form for editing record
+ * @param {<table>} tableElement Table for listing items
+ * @param {string[]} tableFields item fields for each table column
+ * @param {<form>} formElement Form for editing item
  * @param {<input>} searchElement Input for search term
  * @param {string} searchParam API parameter name for search term
  * @param {<p>} statusElement Text element for displaying status and errors
- * @param {<button>} deleteElement Button for deleting records
- * @param {<button>} createElement Button for creating records
- * @param {string} idField Name of field holding record id
+ * @param {<button>} deleteElement Button for deleting items
+ * @param {<button>} createElement Button for creating items
+ * @param {string} idField Name of field holding item id
  */
 function resteasy({
     endpoint, tableElement, tableFields, formElement,
     searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', headers = {},
-    preSearch, preUpdateTable, preUpdateForm, preSave, postUpdateTable, postUpdateForm, postSave }) {
+    preSearch, preUpdateTable, preUpdateForm, preSave, preDelete, postUpdateTable, postUpdateForm, postSave, postDelete }) {
 
     // BINDINGS ----------------------------------------------------------------
 
@@ -74,64 +74,76 @@ function resteasy({
      * Search for items in tableElement.
      */
     async function actionSearch() {
-        _updateStatus('Searching...');
-        await _updateTable();
-        _updateStatus('');
+        try {
+            _updateStatus('Searching...');
+            await _updateTable();
+            _updateStatus('');
+        } catch (err) { }
     }
 
     /**
      * Select item with id in tableElement.
      */
     async function actionSelect(id) {
-        _updateStatus('Working...');
-        _updateSelected(id);
-        const record = await _updateForm({ id });
-        _updateStatus('Editing existing item: ' + record.name || id);
+        try {
+            _updateStatus('Working...');
+            _updateSelected(id);
+            const item = await _updateForm({ id });
+            _updateStatus('Editing existing item', item.name || id);
+        } catch (err) { }
     }
 
     /**
      * Delete the item selected in tableElement.
      */
     async function actionDelete() {
-        _updateStatus('Working...');
-        await _deleteSelected();
-        await _updateTable();
-        await _updateForm({});
-        _updateStatus('Item deleted');
+        try {
+            _updateStatus('Working...');
+            await _deleteSelected();
+            await _updateTable();
+            await _updateForm({});
+            _updateStatus('Item deleted');
+        } catch (err) { }
     }
 
     /**
      * Begin editing a new item in formElement.
      */
     async function actionCreate() {
-        _updateStatus('Working...');
-        _updateSelected();
-        await _updateForm({});
-        _updateStatus('Editing new item');
+        try {
+            _updateStatus('Working...');
+            _updateSelected();
+            await _updateForm({});
+            _updateStatus('Editing new item');
+        } catch (err) { }
     }
 
     /**
      * Save changes made in formElement.
      */
     async function actionSave() {
-        _updateStatus('Working...');
-        const record = await _save();
-        if (record) {
-            await _updateForm({ record });
-            await _updateTable();
-            _updateSelected(record[idField]);
-            _updateStatus('Item saved');
-        }
+        try {
+            _updateStatus('Working...');
+            const item = await _save();
+            if (item) {
+                await _updateForm({ item });
+                await _updateTable();
+                _updateSelected(item[idField]);
+                _updateStatus('Item saved\nEditing existing item', item.name || item[idField]);
+            }
+        } catch (err) { }
     }
 
     /**
      * Cancel unsaved changes in formElement.
      */
     async function actionReset() {
-        _updateStatus('Working...');
-        const record = await _updateForm({ reload: true });
-        if (record !== {}) _updateStatus('Editing existing item: ' + record.name || record.id);
-        else _updateStatus('Editing new item');
+        try {
+            _updateStatus('Working...');
+            const item = await _updateForm({ reload: true });
+            if (item !== {}) _updateStatus('Editing existing item', item.name || item[idField]);
+            else _updateStatus('Editing new item');
+        } catch (err) { }
     }
 
 
@@ -176,47 +188,49 @@ function resteasy({
             await _doHook(postUpdateTable, data);
 
         } catch (err) {
-            _updateStatus(err || 'Failed to load records');
+            _updateStatus('Failed to load items', err);
+            throw err;
         }
     }
 
     /**
-     * Sets fields in formElement to match supplied record, record with id, or empty.
-     * If reload is true, the current record, if any will be re-fetched.
-     * Returns the record.
+     * Sets fields in formElement to match supplied item, item with id, or empty.
+     * If reload is true, the current item, if any will be re-fetched.
+     * Returns the item.
      */
-    async function _updateForm({ record, id, reload }) {
+    async function _updateForm({ item, id, reload }) {
         try {
             // Support reload
             if (reload) id = fid.value;
 
             // Support find by id
-            if (!record && id) {
-                record = await fetchJSON(endpointBase + '/' + id, { headers }, { first: true });
+            if (!item && id) {
+                item = await fetchJSON(endpointBase + '/' + id, { headers }, { first: true });
             }
 
             // Support reset
-            if (!record) record = {};
+            if (!item) item = {};
 
-            record = await _doHook(preUpdateForm, record);
+            item = await _doHook(preUpdateForm, item);
 
-            _writeFormFields(record);
+            _writeFormFields(item);
 
             // Clear any errors
             _highlightErrors({});
 
-            await _doHook(postUpdateForm, record);
+            await _doHook(postUpdateForm, item);
 
-            return record;
+            return item;
 
         } catch (err) {
-            _updateStatus(err || 'Failed to load record');
+            _updateStatus('Failed to load item', err);
+            throw err;
         }
     }
 
     /**
-     * Creates or updates a record using values form formElement.
-     * Returns the updated record if the server returns it.
+     * Creates or updates a item using values form formElement.
+     * Returns the updated item if the server returns it.
      */
     async function _save() {
         try {
@@ -249,35 +263,46 @@ function resteasy({
             return result;
 
         } catch (err) {
-            _updateStatus(err || 'Failed to save record');
+            _updateStatus('Item not saved', err);
+            throw err;
         }
     }
 
     /**
-     * Deletes the selected record.
+     * Deletes the selected item.
      */
     async function _deleteSelected() {
         try {
-            if (!fid.value) return; // NEVER DELETE endpoint/
 
-            const url = endpointBase + '/' + fid.value;
+            const id = await _doHook(preDelete, fid.value);
+
+            if (!id) return; // NEVER DELETE endpoint/
+
+            const url = endpointBase + '/' + id;
 
             let data = await fetchJSON(url, { headers, method: 'DELETE' }, { first: true });
 
+            await _doHook(postDelete, data);
+
         } catch (err) {
-            _updateStatus(err || 'Failed to delete record');
+            _updateStatus('Item not deleted', err);
+            throw err;
         }
     }
 
     /**
      * Set's the text content of statusElement to match status.
      */
-    function _updateStatus(status) {
-        console.log(status);
-        if (typeof status === 'object' && status.message) status = status.message;
-        else if (typeof status === 'object' && status.statusMessage) status = status.statusMessage;
-        else if (typeof status !== 'string') status = JSON.stringify(val, null, 2);
-        statusElement.innerText = status;
+    function _updateStatus(text, status) {
+        console.log(text, status);
+        let msg = text;
+        if (status) {
+            if (typeof status === 'object' && status.message) status = status.message;
+            else if (typeof status === 'object' && status.statusMessage) status = status.statusMessage;
+            else if (typeof status !== 'string') status = JSON.stringify(val, null, 2);
+            msg += ':\n' + status;
+        }
+        statusElement.innerText = msg;
     }
 
     /**
@@ -285,8 +310,8 @@ function resteasy({
      */
     function _highlightErrors(errors) {
         const elements = formElement.elements;
-        for (let item of elements) {
-            item.className = errors.hasOwnProperty(item.name) ? 'invalidField' : '';
+        for (let field of elements) {
+            field.className = errors.hasOwnProperty(field.name) ? 'invalidField' : '';
         }
     }
 
@@ -295,29 +320,29 @@ function resteasy({
      */
     function _writeFormFields(obj) {
         const elements = formElement.elements;
-        for (let item of elements) {
-            let val = deepFind(obj, item.name);
-            if (item.name) {
+        for (let field of elements) {
+            let val = deepFind(obj, field.name);
+            if (field.name) {
                 // Checkbox
-                if (item.type === 'checkbox') {
-                    item.checked = val ? true : false;
+                if (field.type === 'checkbox') {
+                    field.checked = val ? true : false;
                 }
                 // Date
-                else if (item.type === 'date') {
-                    item.value = val ? htmlDate(val) : '';
+                else if (field.type === 'date') {
+                    field.value = val ? htmlDate(val) : '';
                 }
                 // Select
-                else if (item.nodeName === 'SELECT' && typeof val === 'object') {
-                    item.value = val[idField];
+                else if (field.nodeName === 'SELECT' && typeof val === 'object') {
+                    field.value = val[idField];
                 }
                 // JSON, Array, or Text
                 else {
                     let value;
-                    if (item.className.includes('formatJSON')) value = JSON.stringify(val, null, 2);
-                    else if (item.className.includes('formatArray')) value = Array.isArray(val) ? val.join('\n') : val;
+                    if (field.className.includes('formatJSON')) value = JSON.stringify(val, null, 2);
+                    else if (field.className.includes('formatArray')) value = Array.isArray(val) ? val.join('\n') : val;
                     else value = val || '';
-                    item.value = value;
-                    item.placeholder = value;
+                    field.value = value;
+                    field.placeholder = value;
                 }
             }
         }
@@ -329,34 +354,34 @@ function resteasy({
     function _readFormFields() {
         let obj = {};
         const elements = formElement.elements;
-        for (let item of elements) {
+        for (let field of elements) {
 
             // Ignore unnamed or disabled controls
-            if (!item.name || item.disabled) continue;
+            if (!field.name || field.disabled) continue;
 
-            let value = item.value;
+            let value = field.value;
 
             // Checkbox
-            if (item.type === 'checkbox') {
-                value = item.checked ? true : false;
+            if (field.type === 'checkbox') {
+                value = field.checked ? true : false;
             }
             // Date
-            else if (item.type === 'date') {
-                value = item.value ? new Date(item.value) : null;
+            else if (field.type === 'date') {
+                value = field.value ? new Date(field.value) : null;
             }
             // JSON
-            else if (item.className.includes('formatJSON')) {
+            else if (field.className.includes('formatJSON')) {
                 try {
-                    value = JSON.parse(item.value);
+                    value = JSON.parse(field.value);
                 } catch (e) { }
             }
             // Array
-            else if (item.className.includes('formatArray')) {
-                value = item.value.split('\n');
+            else if (field.className.includes('formatArray')) {
+                value = field.value.split('\n');
             }
 
             // Assign value to object
-            obj = deepSet(obj, item.name, value);
+            obj = deepSet(obj, field.name, value);
         }
         return obj;
     }
@@ -371,11 +396,10 @@ function resteasy({
             if (typeof hook === 'function') return await hook(data) || data;
             else return data;
         } catch (err) {
-            console.error('Failed to run hook\n', err);
-            return data;
+            console.error('Error thrown by hook:\n', err);
+            throw err;
         }
     }
-
 }
 
 /**
