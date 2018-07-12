@@ -28,15 +28,16 @@ Parameters should be supplied as an object, supporting the following properties:
 Name          | Type      |               | Description
 ------------- | --------- | ------------- | -------------- 
 endpoint      |`string`   | **Required**  | The REST API endpoint for this resource.
-tableElement  |`<table>`  | **Required**  | An HTML `<table>` for listing records, record can be selected for editing by selecting them in this table. <br>The table must have a `<tbody>`.
-tableFields   |`string[]` | **Required**  | An array of field names corisponding to each table column.
-formElement   |`<form>`   | **Required**  | An HTML `<form>` for editing records. <br>The form must have an `<input>` with name equal to idField. <br>e.g. `<input type="hidden" name="id">`
+tableElement  |`<table>`  | **Required**  | An HTML `<table>` for listing items, an item can be selected for editing by selecting them in this table. <br>The table must have a `<tbody>`.
+tableFields   |`string[]` | **Required**  | An array of item fields corresponding to each column in tableElement.
+formElement   |`<form>`   | **Required**  | An HTML `<form>` for editing items. <br>The form must have an `<input>` with name equal to idField. <br>e.g. `<input type="hidden" name="id">`
 searchElement | `<input>` | Optional      | An HTML `<input>` for the search term. <br>This can be any element with a `.value` property.
 searchParam   | `string`  | Optional      | The querystring parameter name for the search term.
 statusElement | `<p>`     | Optional      | An HTML element for displaying status and errors. <br>This can be any element with a `.innerText` property.
-deleteElement |`<button>` | Optional      | An HTML control for deleting the selected record. <br>This can be any element which fires a `submit` event.
-createElement |`<button>` | Optional      | An HTML control for creating new records. <br>This can be any element which fires a `submit` event.
-idField       |`string`   | Optional      | The name of the id field for records, defaults to "id". <br>RESTeasy will not function if this is not correct. <br>If your database is MongoDB, this is usually "_id".
+deleteElement |`<button>` | Optional      | An HTML control for deleting the selected item. <br>This can be any element which fires a `submit` event.
+createElement |`<button>` | Optional      | An HTML control for creating new items. <br>This can be any element which fires a `submit` event.
+idField       |`string`   | Optional      | The item field to use for identification, defaults to "id". <br>RESTeasy will not function if this is not correct. <br>If your database is MongoDB, this is usually "_id".
+nameField     |`string`   | Optional      | The item field to use for display name, defaults to "name".
 headers       | `object`  | Optional      | An object containing headers to include in all requests. <br>Content-type will default to `application/json` if not set.
 
 If RESTeasy is not initialized correctly it will let you know what's wrong in the browser console.
@@ -62,7 +63,7 @@ preDelete       | Called with the id of the resource to be deleted. <br>Allows i
 postDelete      | Called with the response from deleting the resource. 
 
 ### Form Design
-RESTeasy allows editing records using a HTML `<form>`.  
+RESTeasy allows editing items using a HTML `<form>`.  
 The minimum requirement is a form containing an input with name equal to idField.  
 ```
 <form id="myform">
@@ -82,7 +83,7 @@ Produces:
 `{ company: { address: { postcode: "ABC123" } } }`
 
 - Checkbox values will always appear in output.   
-i.e. an unchecked checkbox will have the value false rather than being ommited from the record.   
+i.e. an unchecked checkbox will have the value false rather than being ommited from the item.   
 e.g.   
 `<input type="checkbox" name="mybool">`   
 Produces:   

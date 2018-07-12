@@ -2,18 +2,19 @@
  * Initializes a resteasy editor.
  * @param {string} endpoint REST API endpoint
  * @param {<table>} tableElement Table for listing items
- * @param {string[]} tableFields item fields for each table column
+ * @param {string[]} tableFields item fields corresponding to each column in tableElement
  * @param {<form>} formElement Form for editing item
- * @param {<input>} searchElement Input for search term
- * @param {string} searchParam API parameter name for search term
- * @param {<p>} statusElement Text element for displaying status and errors
- * @param {<button>} deleteElement Button for deleting items
- * @param {<button>} createElement Button for creating items
- * @param {string} idField Name of field holding item id
+ * @param {<input>} [searchElement] Input for search term
+ * @param {string} [searchParam=q] querystring parameter name for search term
+ * @param {<p>} [statusElement] Text element for displaying status and errors
+ * @param {<button>} [deleteElement] Button for deleting items
+ * @param {<button>} [createElement] Button for creating items
+ * @param {string} [idField=id] item field used for identification
+ * @param {string} [nameField=name] item field to use for display name
  */
 function resteasy({
     endpoint, tableElement, tableFields, formElement,
-    searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', headers = {},
+    searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
     preSearch, preUpdateTable, preUpdateForm, preSave, preDelete, postUpdateTable, postUpdateForm, postSave, postDelete }) {
 
     // BINDINGS ----------------------------------------------------------------
@@ -89,7 +90,7 @@ function resteasy({
             _updateStatus('Working...');
             _updateSelected(id);
             const item = await _updateForm({ id });
-            _updateStatus('Editing existing item', item.name || id);
+            _updateStatus('Editing existing item', item[nameField] || id);
         } catch (err) { }
     }
 
@@ -129,7 +130,7 @@ function resteasy({
                 await _updateForm({ item });
                 await _updateTable();
                 _updateSelected(item[idField]);
-                _updateStatus('Item saved\nEditing existing item', item.name || item[idField]);
+                _updateStatus('Item saved\nEditing existing item', item[nameField] || item[idField]);
             }
         } catch (err) { }
     }
@@ -141,7 +142,7 @@ function resteasy({
         try {
             _updateStatus('Working...');
             const item = await _updateForm({ reload: true });
-            if (item !== {}) _updateStatus('Editing existing item', item.name || item[idField]);
+            if (item !== {}) _updateStatus('Editing existing item', item[nameField] || item[idField]);
             else _updateStatus('Editing new item');
         } catch (err) { }
     }

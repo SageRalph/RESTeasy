@@ -91,12 +91,15 @@
             statusElement: document.getElementById('userstatus'),
             deleteElement: document.getElementById('userdeletebutton'),
             createElement: document.getElementById('usercreatebutton'),
-            idField: 'id',
+            nameField: 'username',
+            // Example hooks (optional)
             preUpdateTable: data => data.map(item => {
+                // Display item names in caps in the table
                 item.name = item.name.toUpperCase();
                 return item;
             }),
             preDelete: id => {
+                // Confirm deletion of items
                 if (!confirm('Are you sure you want to delete this item?')) throw 'Action cancelled';
                 return id;
             }
