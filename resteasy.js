@@ -159,7 +159,10 @@ function resteasy({
      * If id is not set, no rows will be selected.
      */
     function _updateSelected(id) {
-        Array.from(tableElement.rows).map(row => row.className = row.id === id ? 'selected' : '');
+        Array.from(tableElement.rows).map(row => {
+            if (row.id === id) row.classList.add('selected');
+            else row.classList.remove('selected');
+        });
     }
 
     /**
@@ -315,7 +318,9 @@ function resteasy({
     function _highlightErrors(errors) {
         const elements = formElement.elements;
         for (let field of elements) {
-            field.className = errors.hasOwnProperty(field.name) ? 'invalidField' : '';
+            let match = errors.hasOwnProperty(field.name);
+            if (match) field.classList.add('invalidField');
+            else field.classList.remove('invalidField');
         }
     }
 
@@ -342,8 +347,8 @@ function resteasy({
                 // JSON, Array, or Text
                 else {
                     let value;
-                    if (field.className.includes('formatJSON')) value = JSON.stringify(val, null, 2);
-                    else if (field.className.includes('formatArray')) value = Array.isArray(val) ? val.join('\n') : val;
+                    if (field.classList.contains('formatJSON')) value = JSON.stringify(val, null, 2);
+                    else if (field.classList.contains('formatArray')) value = Array.isArray(val) ? val.join('\n') : val;
                     else value = val || '';
                     field.value = value;
                     field.placeholder = value;
@@ -374,14 +379,14 @@ function resteasy({
                 value = field.value ? new Date(field.value) : null;
             }
             // JSON
-            else if (field.className.includes('formatJSON')) {
+            else if (field.classList.contains('formatJSON')) {
                 try {
                     value = JSON.parse(field.value);
                 } catch (e) { }
             }
             // Array
-            else if (field.className.includes('formatArray')) {
-                value = field.value.split('\n');
+            else if (field.classList.contains('formatArray')) {
+                value = field.value.split('\n').filter(l => l.trim().length);
             }
 
             // Assign value to object
