@@ -280,7 +280,7 @@ function resteasy({
 
             const id = await _doHook(preDelete, fid.value);
 
-            if (!id) return; // NEVER DELETE endpoint/
+            if (!id) throw 'Nothing selected'; // NEVER DELETE endpoint/
 
             const url = endpointBase + '/' + id;
 
