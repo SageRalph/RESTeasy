@@ -58,7 +58,7 @@ preUpdateForm   | Called with the resource to be written. <br>Allows interruptio
 postUpdateForm  | Called with the resource that was written to the form.
 preSave         | Called with the resource to be saved. <br>Allows interruption of the action, or modification of the resource before it is saved.
 postSave        | Called with the response from saving the resource. 
-preDelete       | Called with the id of the resource to be deleted. <br>Allows interruption of the action. <br>*Note: This hook will be run even if no element is selected, allowing for programmatic selection.*
+preDelete       | Called with the id of the resource to be deleted. <br>Allows interruption of the action. <br>*Note: This hook will be run even if no element is selected, allowing for programmatic selection. The delete event will only proceed if an element was selected or a value is returned by this hook*
 postDelete      | Called with the response from deleting the resource. 
 
 ### Form Design
