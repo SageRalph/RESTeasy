@@ -31,6 +31,7 @@ endpoint      |`string`   | **Required**  | The REST API endpoint for this resou
 tableElement  |`<table>`  | **Required**  | An HTML `<table>` for listing items, an item can be selected for editing by selecting them in this table. <br>The table must have a `<tbody>`.
 tableFields   |`string[]` | **Required**  | An array of item fields corresponding to each column in tableElement.
 formElement   |`<form>`   | **Required**  | An HTML `<form>` for editing items. <br>The form must have an `<input>` with name equal to idField. <br>e.g. `<input type="hidden" name="id">`
+log           |`function` | Optional      | A function for logging actions and errors. If not set (or not a function), nothing will be logged.
 searchElement | `<input>` | Optional      | An HTML `<input>` for the search term. <br>This can be any element with a `.value` property.
 searchParam   | `string`  | Optional      | The querystring parameter name for the search term.
 statusElement | `<p>`     | Optional      | An HTML element for displaying status and errors. <br>This can be any element with a `.innerText` property.

@@ -4,6 +4,7 @@
  * @param {<table>} tableElement Table for listing items
  * @param {string[]} tableFields item fields corresponding to each column in tableElement
  * @param {<form>} formElement Form for editing item
+ * @param {function} [log] function for logging
  * @param {<input>} [searchElement] Input for search term
  * @param {string} [searchParam=q] querystring parameter name for search term
  * @param {<p>} [statusElement] Text element for displaying status and errors
@@ -14,7 +15,7 @@
  */
 function resteasy({
     endpoint, tableElement, tableFields, formElement,
-    searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
+    log, searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
     preSearch, preUpdateTable, preUpdateForm, preSave, preDelete, postUpdateTable, postUpdateForm, postSave, postDelete }) {
 
     // BINDINGS ----------------------------------------------------------------
@@ -39,6 +40,8 @@ function resteasy({
     const endpointBase = endpoint.includes('?') ? endpoint.split('?')[0] : endpoint;
 
     if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
+
+    if (typeof log !== 'function') log = () => { };
 
     formElement.onsubmit = function (e) {
         e.preventDefault();
@@ -295,7 +298,7 @@ function resteasy({
      * Set's the text content of statusElement to match status.
      */
     function _updateStatus(text, status) {
-        console.log(text, status);
+        log(text, status);
         let msg = text;
         if (status) {
             if (typeof status === 'object' && status.message) status = status.message;
@@ -397,7 +400,7 @@ function resteasy({
             if (typeof hook === 'function') return await hook(data) || data;
             else return data;
         } catch (err) {
-            console.error('Error thrown by hook:\n', err);
+            log('Error thrown by hook:\n', err);
             throw err;
         }
     }
