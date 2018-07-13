@@ -5,6 +5,7 @@
  * @param {string[]} tableFields item fields corresponding to each column in tableElement
  * @param {<form>} formElement Form for editing item
  * @param {function} [log] function for logging
+ * @param {string[]} [tableClasses] Array of classNames corresponding to each column in tableElement
  * @param {<input>} [searchElement] Input for search term
  * @param {string} [searchParam=q] querystring parameter name for search term
  * @param {<p>} [statusElement] Text element for displaying status and errors
@@ -15,7 +16,7 @@
  */
 function resteasy({
     endpoint, tableElement, tableFields, formElement,
-    log, searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
+    log, tableClasses = [], searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
     preSearch, preUpdateTable, preUpdateForm, preSave, preDelete, postUpdateTable, postUpdateForm, postSave, postDelete }) {
 
     // BINDINGS ----------------------------------------------------------------
@@ -187,10 +188,20 @@ function resteasy({
             data = await _doHook(preUpdateTable, data);
 
             // Update table
-            tbody.innerHTML = data.map(row =>
-                '<tr id=' + row[idField] + '>' + tableFields.map(field => '<td>' + row[field] + '</td>').join('') + '</tr>'
-            ).join('');
-            Array.from(tableElement.rows).map(row => row.addEventListener("click", actionSelect.bind(row, row.id)));
+            tbody.innerHTML = '';
+            for (let item of data) {
+                let tr = document.createElement('tr');
+                tr.id = item[idField];
+                tr.addEventListener("click", actionSelect.bind(tr, tr.id));
+
+                for (let col = 0; col < tableFields.length; col++) {
+                    let td = document.createElement('td');
+                    td.innerText = item[tableFields[col]];
+                    if (tableClasses.length > col) td.className = tableClasses[col];
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
 
             await _doHook(postUpdateTable, data);
 
