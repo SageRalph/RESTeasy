@@ -78,7 +78,7 @@ You can add your resource's fields as normal form inputs. RESTeasy does not requ
 RESTeasy uses custom form parsing which works a little differently from normal form serialization.  
 Here are the important differences:
 
-- You can specify sub-properties by putting `.`s in an input's name attribute *Note: This also works for tableFields*.   
+- You can specify sub-properties by putting `.`s in an input's name attribute. *Note: This also works for tableFields*.   
 e.g.   
 `<input type="text" name="company.address.postcode" value="ABC123">`  
 Produces:   
