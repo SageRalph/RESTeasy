@@ -44,6 +44,12 @@ function resteasy({
 
     if (typeof log !== 'function') log = () => { };
 
+    // Programmatic ways of triggering operations
+    tableElement.easySelect = (id) => actionSelect(id);
+    tableElement.easyCreate = () => actionCreate();
+    tableElement.easyDelete = () => actionDelete();
+    tableElement.easySearch = () => actionSearch();
+
     formElement.onsubmit = function (e) {
         e.preventDefault();
         actionSave();

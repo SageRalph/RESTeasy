@@ -44,6 +44,22 @@ headers       | `object`  | Optional      | An object containing headers to incl
 
 If RESTeasy is not initialized correctly it will let you know what's wrong in the browser console.
 
+#### Events and functions
+RESTeasy intercepts events fired by the HTML elements supplied. You can also trigger some actions programmatically using additional functions RESTeasy attaches to those elements.
+
+Element           | Function    | Action
+----------------- | ----------- | -------------- 
+tableElement      |`easyCreate` | Resets the selection in tableElement and clears formElement.
+tableElement      |`easyDelete` | Deletes the item selected in tableElement and clear formElement.
+tableElement      |`easySearch` | Searches for items matching the query in searchElement and updates tableElement.
+tableElement      |`easySelect` | Uses id passed as a parameter to selects an item in tableElement and load its values into formElement. <br>If an id is not supplied or matches no items, the selection will be cleared.
+tableElement.row  |`onclick`    | Selects the clicked row in tableElement and loads the item's values into formElement.
+formElement       |`onsubmit`   | Saves the item being edited in formElement. Uses POST for new items, or PUT if editing.
+formElement       |`onreset`    | Reloads the values of the item being edited in formElement.
+searchElement     |`onkeyup`    | Same as easySearch.
+createElement     |`onclick`    | Same as easyCreate.
+deleteElement     |`onclick`    | Same as easyDelete.
+
 #### Life-cycle hooks
 RESTeasy also supports life-cycle hooks. These are optional functions you can pass as parameters on initialization.    
 Hooks should be awaitable functions (either synchronous or return a promise) and will be called with relevant data each time the life-cycle event occurs.   
