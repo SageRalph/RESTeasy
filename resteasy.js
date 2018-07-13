@@ -196,7 +196,7 @@ function resteasy({
 
                 for (let col = 0; col < tableFields.length; col++) {
                     let td = document.createElement('td');
-                    td.innerText = item[tableFields[col]];
+                    td.innerText = deepFind(item, tableFields[col]);
                     if (tableClasses.length > col) td.className = tableClasses[col];
                     tr.appendChild(td);
                 }

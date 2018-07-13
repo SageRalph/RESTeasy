@@ -29,7 +29,7 @@ Name          | Type      |               | Description
 ------------- | --------- | ------------- | -------------- 
 endpoint      |`string`   | **Required**  | The REST API endpoint for this resource.
 tableElement  |`<table>`  | **Required**  | An HTML `<table>` for listing items, an item can be selected for editing by selecting them in this table. <br>The table must have a `<tbody>`.
-tableFields   |`string[]` | **Required**  | An array of item fields corresponding to each column in tableElement.
+tableFields   |`string[]` | **Required**  | An array of item fields corresponding to each column in tableElement. <br>Supports sub-properties. e.g. `["address.postcode"]`
 formElement   |`<form>`   | **Required**  | An HTML `<form>` for editing items. <br>The form must have an `<input>` with name equal to idField. <br>e.g. `<input type="hidden" name="id">`
 log           |`function` | Optional      | A function for logging actions and errors. If not set (or not a function), nothing will be logged.
 tableClasses  |`string[]` | Optional      | An array of classNames to apply to cells, corresponding to each column in tableElement.
@@ -75,17 +75,17 @@ The minimum requirement is a form containing an input with name equal to idField
 You can add your resource's fields as normal form inputs. RESTeasy does not require any use of classes or ids to identify most fields.
 
 #### Custom parsing
-RESTeasy uses custom form parsing which works a little diffrently from normal form serialization.  
+RESTeasy uses custom form parsing which works a little differently from normal form serialization.  
 Here are the important differences:
 
-- You can specify sub-properties by putting `.`s in an input's name attribute.   
+- You can specify sub-properties by putting `.`s in an input's name attribute *(this also works for tableFields)*.   
 e.g.   
 `<input type="text" name="company.address.postcode" value="ABC123">`  
 Produces:   
 `{ company: { address: { postcode: "ABC123" } } }`
 
 - Checkbox values will always appear in output.   
-i.e. an unchecked checkbox will have the value false rather than being ommited from the item.   
+i.e. an unchecked checkbox will have the value false rather than being omitted from the item.   
 e.g.   
 `<input type="checkbox" name="mybool">`   
 Produces:   
