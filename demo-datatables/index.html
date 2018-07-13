@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>RESTeasy Demo</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="style.css" type="text/css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css" type="text/css" />
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="../resteasy.js"></script>
+    <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+</head>
+
+<body>
+
+    <h1>RESTeasy Demo</h1>
+    <p>This is an example usage of the RESTeasy library with DataTables.</p>
+    <p>Just because RESTeasy doesn't have any dependencies doesn't mean you can't bring your own. RESTeasy's life-cycle hooks make it easy to work with other libraries.</p>
+
+    <table id="usertable" class="display">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <input type="button" value="Add New" id="usercreatebutton">
+    <input type="button" value="Delete Selected" id="userdeletebutton">
+
+    <p id="userstatus"></p>
+
+    <h1>User Details</h1>
+
+    <form id="userform">
+        <input type="hidden" name="id">
+        <label>
+            <span>Username</span>
+            <input type="text" name="username" required>
+        </label>
+        <label>
+            <span>Name</span>
+            <input type="text" name="name" required>
+        </label>
+        <label>
+            <span>Email</span>
+            <input type="email" name="email">
+        </label>
+
+        <h3>Address</h3>
+        <label>
+            <span>Street</span>
+            <input type="text" name="address.street">
+        </label>
+        <label>
+            <span>City</span>
+            <input type="text" name="address.city">
+        </label>
+        <label>
+            <span>Zipcode</span>
+            <input type="string" name="address.zipcode">
+        </label>
+
+        <h3>Company</h3>
+        <label>
+            <span>Name</span>
+            <input type="text" name="company.name">
+        </label>
+        <label>
+            <span>Catchphrase</span>
+            <input type="text" name="company.catchPhrase">
+        </label>
+
+        <span>
+            <input type="submit" value="Save">
+            <input type="reset" value="Reset">
+        </span>
+    </form>
+
+    <script>
+        resteasy({
+            // Required
+            endpoint: 'http://jsonplaceholder.typicode.com/users',
+            tableElement: document.getElementById('usertable'),
+            tableFields: ['username', 'name'],
+            formElement: document.getElementById('userform'),
+            // Optional
+            log: console.log,
+            statusElement: document.getElementById('userstatus'),
+            deleteElement: document.getElementById('userdeletebutton'),
+            createElement: document.getElementById('usercreatebutton'),
+            nameField: 'username',
+            // Example hooks (optional)
+            preUpdateTable: data => data.map(item => {
+                // Display item names in caps in the table
+                item.name = item.name.toUpperCase();
+                return item;
+            }),
+            preDelete: id => {
+                // Confirm deletion of items
+                if (!confirm('Are you sure you want to delete this item?')) throw 'Action cancelled';
+                return id;
+            },
+            postUpdateTable: () => {
+                $('#usertable').DataTable();
+            }
+        });
+    </script>
+
+</body>
+
+</html>
