@@ -366,7 +366,7 @@ function resteasy({
                     let value;
                     if (field.classList.contains('formatJSON')) value = JSON.stringify(val, null, 2);
                     else if (field.classList.contains('formatArray')) value = Array.isArray(val) ? val.join('\n') : val;
-                    else value = val || '';
+                    else value = (val === undefined || val === null) ? '' : val;
                     field.value = value;
                     field.placeholder = value;
                 }
