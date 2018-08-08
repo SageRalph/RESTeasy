@@ -16,8 +16,12 @@
  */
 function resteasy({
     endpoint, tableElement, tableFields, formElement,
-    log, tableClasses = [], searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
-    preSearch, preUpdateTable, preUpdateForm, preSave, preDelete, postUpdateTable, postUpdateForm, postSave, postDelete }) {
+    log, tableClasses = [], searchElement = {}, searchParam = 'q',
+    pageSizeParam, pageNumberParam, pageSize = 10, pageIncrement = 1,
+    pageNextElement = {}, pagePreviousElement = {}, pageStatusElement = {},
+    statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
+    preSearch, preUpdateTable, preUpdateForm, preSave, preDelete,
+    postUpdateTable, postUpdateForm, postSave, postDelete }) {
 
     // BINDINGS ----------------------------------------------------------------
 
@@ -49,6 +53,8 @@ function resteasy({
     tableElement.easyCreate = () => actionCreate();
     tableElement.easyDelete = () => actionDelete();
     tableElement.easySearch = () => actionSearch();
+    tableElement.easyNextPage = () => actionNextPage();
+    tableElement.easyPreviousPage = () => actionPreviousPage();
 
     formElement.onsubmit = function (e) {
         e.preventDefault();
@@ -75,8 +81,19 @@ function resteasy({
         actionCreate();
     }
 
+    pageNextElement.onclick = function (e) {
+        e.preventDefault();
+        actionNextPage();
+    }
+
+    pagePreviousElement.onclick = function (e) {
+        e.preventDefault();
+        actionPreviousPage();
+    }
+
     //Load initial data
     _updateTable();
+    let pageNumber = 0;
 
 
     // ACTIONS -----------------------------------------------------------------
@@ -87,6 +104,32 @@ function resteasy({
     async function actionSearch() {
         try {
             _updateStatus('Searching...');
+            pageNumber = 0;
+            await _updateTable();
+            _updateStatus('');
+        } catch (err) { }
+    }
+
+    /**
+     * Show the next page of items in tableElement.
+     */
+    async function actionNextPage() {
+        try {
+            _updateStatus('Searching...');
+            pageNumber += pageIncrement;
+            await _updateTable();
+            _updateStatus('');
+        } catch (err) { }
+    }
+
+    /**
+     * Show the previous page of items in tableElement.
+     */
+    async function actionPreviousPage() {
+        try {
+            _updateStatus('Searching...');
+            pageNumber -= pageIncrement;
+            if (pageNumber < 0) pageNumber = 0;
             await _updateTable();
             _updateStatus('');
         } catch (err) { }
@@ -183,10 +226,15 @@ function resteasy({
 
             searchValue = await _doHook(preSearch, searchValue);
 
-            if (searchValue) {
+            // Determine query parameters
+            let params = [];
+            if (searchValue) params.push(searchParam + '=' + searchValue);
+            if (pageSizeParam) params.push(pageSizeParam + '=' + pageSize);
+            if (pageNumberParam) params.push(pageNumberParam + '=' + pageNumber);
+            if (params.length) {
                 // Support endpoints with other query parameters
                 url += url.includes('?') ? '&' : '?';
-                url += searchParam + '=' + searchValue;
+                url += params.join('&');
             }
 
             let data = await fetchJSON(url, { headers }, { array: true });
