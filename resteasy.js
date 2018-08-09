@@ -456,7 +456,7 @@ class RESTeasy {
                 }
                 // Select
                 else if (field.nodeName === 'SELECT' && typeof val === 'object') {
-                    field.value = val[idField];
+                    field.value = val[this.idField];
                 }
                 // JSON, Array, or Text
                 else {
