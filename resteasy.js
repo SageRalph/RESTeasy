@@ -8,9 +8,17 @@
  * @param {string[]} [tableClasses] Array of classNames corresponding to each column in tableElement
  * @param {<input>} [searchElement] Input for search term
  * @param {string} [searchParam=q] querystring parameter name for search term
+ * @param {string} [pageSizeParam] querystring parameter name for pagination page size
+ * @param {string} [pageNumberParam] querystring parameter name for pagination page number
+ * @param {integer} [pageSize=10] Number of items to request per pagination page
+ * @param {integer} [pageIncrement=1] Amount to increase or decrease page number by
+ * @param {string} [pageTotalProperty] Search response property for the total number of paginated items, supports nested properties. e.g. "meta.total"
+ * @param {<button>} [pageNextElement] Button for requesting the next pagination page
+ * @param {<button>} [pagePreviousElement] Button for requesting the previous pagination page
+ * @param {<p>} [pageStatusElement] Text element for displaying the current and total number of pagination pages
  * @param {<p>} [statusElement] Text element for displaying status and errors
  * @param {<button>} [deleteElement] Button for deleting items
- * @param {<button>} [createElement] Button for creating items
+ * @param {<button>} [createElement] Button for creating items 
  * @param {string} [idField=id] item field used for identification
  * @param {string} [nameField=name] item field to use for display name
  */
