@@ -8,16 +8,28 @@
  * @param {string[]} [tableClasses] Array of classNames corresponding to each column in tableElement
  * @param {<input>} [searchElement] Input for search term
  * @param {string} [searchParam=q] querystring parameter name for search term
+ * @param {string} [pageSizeParam] querystring parameter name for pagination page size
+ * @param {string} [pageNumberParam] querystring parameter name for pagination page number
+ * @param {integer} [pageSize=10] Number of items to request per pagination page
+ * @param {integer} [pageIncrement=1] Amount to increase or decrease page number by
+ * @param {string} [pageTotalProperty] Search response property for the total number of paginated items, supports nested properties. e.g. "meta.total"
+ * @param {<button>} [pageNextElement] Button for requesting the next pagination page
+ * @param {<button>} [pagePreviousElement] Button for requesting the previous pagination page
+ * @param {<p>} [pageStatusElement] Text element for displaying the current and total number of pagination pages
  * @param {<p>} [statusElement] Text element for displaying status and errors
  * @param {<button>} [deleteElement] Button for deleting items
- * @param {<button>} [createElement] Button for creating items
+ * @param {<button>} [createElement] Button for creating items 
  * @param {string} [idField=id] item field used for identification
  * @param {string} [nameField=name] item field to use for display name
  */
 function resteasy({
     endpoint, tableElement, tableFields, formElement,
-    log, tableClasses = [], searchElement = {}, searchParam = 'q', statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
-    preSearch, preUpdateTable, preUpdateForm, preSave, preDelete, postUpdateTable, postUpdateForm, postSave, postDelete }) {
+    log, tableClasses = [], searchElement = {}, searchParam = 'q',
+    pageSizeParam, pageNumberParam, pageSize = 10, pageIncrement = 1, pageTotalProperty,
+    pageNextElement = {}, pagePreviousElement = {}, pageStatusElement = {},
+    statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
+    preSearch, preUpdateTable, preUpdateForm, preSave, preDelete,
+    postUpdateTable, postUpdateForm, postSave, postDelete }) {
 
     // BINDINGS ----------------------------------------------------------------
 
@@ -49,6 +61,8 @@ function resteasy({
     tableElement.easyCreate = () => actionCreate();
     tableElement.easyDelete = () => actionDelete();
     tableElement.easySearch = () => actionSearch();
+    tableElement.easyNextPage = () => actionNextPage();
+    tableElement.easyPreviousPage = () => actionPreviousPage();
 
     formElement.onsubmit = function (e) {
         e.preventDefault();
@@ -75,8 +89,20 @@ function resteasy({
         actionCreate();
     }
 
+    pageNextElement.onclick = function (e) {
+        e.preventDefault();
+        actionNextPage();
+    }
+
+    pagePreviousElement.onclick = function (e) {
+        e.preventDefault();
+        actionPreviousPage();
+    }
+
     //Load initial data
     _updateTable();
+    let pageNumber = 0;
+    let pageTotal = 0;
 
 
     // ACTIONS -----------------------------------------------------------------
@@ -87,8 +113,30 @@ function resteasy({
     async function actionSearch() {
         try {
             _updateStatus('Searching...');
+            pageNumber = 0;
             await _updateTable();
             _updateStatus('');
+        } catch (err) { }
+    }
+
+    /**
+     * Show the next page of items in tableElement.
+     */
+    async function actionNextPage() {
+        try {
+            pageNumber += pageIncrement;
+            await _updateTable();
+        } catch (err) { }
+    }
+
+    /**
+     * Show the previous page of items in tableElement.
+     */
+    async function actionPreviousPage() {
+        try {
+            pageNumber -= pageIncrement;
+            if (pageNumber < 0) pageNumber = 0;
+            await _updateTable();
         } catch (err) { }
     }
 
@@ -183,13 +231,18 @@ function resteasy({
 
             searchValue = await _doHook(preSearch, searchValue);
 
-            if (searchValue) {
+            // Determine query parameters
+            let params = [];
+            if (searchValue) params.push(searchParam + '=' + searchValue);
+            if (pageSizeParam) params.push(pageSizeParam + '=' + pageSize);
+            if (pageNumberParam) params.push(pageNumberParam + '=' + pageNumber);
+            if (params.length) {
                 // Support endpoints with other query parameters
                 url += url.includes('?') ? '&' : '?';
-                url += searchParam + '=' + searchValue;
+                url += params.join('&');
             }
 
-            let data = await fetchJSON(url, { headers }, { array: true });
+            let data = await fetchJSON(url, { headers }, { array: true, count: true });
 
             data = await _doHook(preUpdateTable, data);
 
@@ -210,6 +263,15 @@ function resteasy({
             }
 
             await _doHook(postUpdateTable, data);
+
+            // Update pagination status
+            if (pageTotal) {
+                let current = Math.floor(pageNumber / pageIncrement) + 1;
+                let total = Math.floor(pageTotal / pageIncrement) + 1;
+                pageStatusElement.innerText = 'Page ' + current + ' of ' + total;
+                pageNextElement.disabled = current === total;
+                pagePreviousElement.disabled = current === 1;
+            }
 
         } catch (err) {
             _updateStatus('Failed to load items', err);
@@ -426,86 +488,94 @@ function resteasy({
             throw err;
         }
     }
-}
 
-/**
- * Gets value from obj at path.
- * Path can be shallow or deep
- * e.g. obj[a] or obj[a[b]]
- */
-function deepFind(obj, path) {
-    // Shallow (e.g. {name})
-    if (!path.includes('.')) return obj[path];
 
-    // Deep (e.g. {address:{street}})
-    const parts = path.split('.')
-    let cursor = obj;
-    for (let field of parts) {
-        if (cursor[field] == undefined) return undefined;
-        else cursor = cursor[field];
+    // UTILITIES ---------------------------------------------------------------
+
+    /**
+     * Gets value from obj at path.
+     * Path can be shallow or deep
+     * e.g. obj[a] or obj[a[b]]
+     */
+    function deepFind(obj, path) {
+        // Shallow (e.g. {name})
+        if (!path.includes('.')) return obj[path];
+
+        // Deep (e.g. {address:{street}})
+        const parts = path.split('.')
+        let cursor = obj;
+        for (let field of parts) {
+            if (cursor[field] == undefined) return undefined;
+            else cursor = cursor[field];
+        }
+        return cursor;
     }
-    return cursor;
-}
 
-/**
- * Sets value in obj at path.
- * Path can be shallow or deep
- * e.g. obj[a] or obj[a[b]]
- */
-function deepSet(obj, path, value) {
-    // Shallow (e.g. {name})
-    if (!path.includes('.')) {
-        obj[path] = value;
+    /**
+     * Sets value in obj at path.
+     * Path can be shallow or deep
+     * e.g. obj[a] or obj[a[b]]
+     */
+    function deepSet(obj, path, value) {
+        // Shallow (e.g. {name})
+        if (!path.includes('.')) {
+            obj[path] = value;
+            return obj;
+        }
+        // Deep (e.g. {address:{street}})
+        let parts = path.split('.');
+        let cursor = obj;
+        for (let field of parts.slice(0, -1)) {
+            if (cursor[field] === undefined) cursor[field] = {};
+            cursor = cursor[field];
+        }
+        cursor[parts.pop()] = value;
         return obj;
     }
-    // Deep (e.g. {address:{street}})
-    let parts = path.split('.');
-    let cursor = obj;
-    for (let field of parts.slice(0, -1)) {
-        if (cursor[field] === undefined) cursor[field] = {};
-        cursor = cursor[field];
-    }
-    cursor[parts.pop()] = value;
-    return obj;
-}
 
-/**
- * Converts a JSON date string to a HTML date string.
- */
-function htmlDate(str) {
-    const date = new Date(str);
-    const d = ("0" + date.getDate()).slice(-2);
-    const m = ("0" + (date.getMonth() + 1)).slice(-2);
-    const y = date.getFullYear();
-    return y + "-" + m + "-" + d;
-}
-
-async function fetchJSON(url, options, { array, first }) {
-    const response = await fetch(url, options);
-
-    let data = {};
-
-    // Support 204 (no content) when no results
-    if (response.status === 204) return array ? [] : undefined;
-
-    data = await response.json();
-
-    // Check for HTTP error
-    if (!response.ok) throw data;
-
-    // Support either [item] or {results:[{item}]}
-    if (array && Array.isArray(data)) return data;
-    if (array && Array.isArray(data.results)) return data.results;
-    if (array) return [];
-
-    if (first && Array.isArray(data)) {
-        if (!data.length) return;
-        return data[0];
-    }
-    if (first && Array.isArray(data.results)) {
-        if (!data.results.length) return;
-        return data.results[0];
+    /**
+     * Converts a JSON date string to a HTML date string.
+     */
+    function htmlDate(str) {
+        const date = new Date(str);
+        const d = ("0" + date.getDate()).slice(-2);
+        const m = ("0" + (date.getMonth() + 1)).slice(-2);
+        const y = date.getFullYear();
+        return y + "-" + m + "-" + d;
     }
 
-    return data;
+    async function fetchJSON(url, options, { array, first, count }) {
+        const response = await fetch(url, options);
+
+        let data = {};
+
+        // Support 204 (no content) when no results
+        if (response.status === 204) return array ? [] : undefined;
+
+        data = await response.json();
+
+        // Check for HTTP error
+        if (!response.ok) throw data;
+
+        // Update page total if needed
+        if (count && pageTotalProperty && typeof data === 'object') {
+            pageTotal = deepFind(data, pageTotalProperty) || 0;
+        }
+
+        // Support either [item] or {results:[{item}]}
+        if (array && Array.isArray(data)) return data;
+        if (array && Array.isArray(data.results)) return data.results;
+        if (array) return [];
+
+        if (first && Array.isArray(data)) {
+            if (!data.length) return;
+            return data[0];
+        }
+        if (first && Array.isArray(data.results)) {
+            if (!data.results.length) return;
+            return data.results[0];
+        }
+
+        return data;
+    }
 }
