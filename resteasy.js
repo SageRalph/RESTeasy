@@ -1,108 +1,143 @@
-/**
- * Initializes a resteasy editor.
- * @param {string} endpoint REST API endpoint
- * @param {<table>} tableElement Table for listing items
- * @param {string[]} tableFields item fields corresponding to each column in tableElement
- * @param {<form>} formElement Form for editing item
- * @param {function} [log] function for logging
- * @param {string[]} [tableClasses] Array of classNames corresponding to each column in tableElement
- * @param {<input>} [searchElement] Input for search term
- * @param {string} [searchParam=q] querystring parameter name for search term
- * @param {string} [pageSizeParam] querystring parameter name for pagination page size
- * @param {string} [pageNumberParam] querystring parameter name for pagination page number
- * @param {integer} [pageSize=10] Number of items to request per pagination page
- * @param {integer} [pageIncrement=1] Amount to increase or decrease page number by
- * @param {string} [pageTotalProperty] Search response property for the total number of paginated items, supports nested properties. e.g. "meta.total"
- * @param {<button>} [pageNextElement] Button for requesting the next pagination page
- * @param {<button>} [pagePreviousElement] Button for requesting the previous pagination page
- * @param {<p>} [pageStatusElement] Text element for displaying the current and total number of pagination pages
- * @param {<p>} [statusElement] Text element for displaying status and errors
- * @param {<button>} [deleteElement] Button for deleting items
- * @param {<button>} [createElement] Button for creating items 
- * @param {string} [idField=id] item field used for identification
- * @param {string} [nameField=name] item field to use for display name
- */
-function resteasy({
-    endpoint, tableElement, tableFields, formElement,
-    log, tableClasses = [], searchElement = {}, searchParam = 'q',
-    pageSizeParam, pageNumberParam, pageSize = 10, pageIncrement = 1, pageTotalProperty,
-    pageNextElement = {}, pagePreviousElement = {}, pageStatusElement = {},
-    statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
-    preSearch, preUpdateTable, preUpdateForm, preSave, preDelete,
-    postUpdateTable, postUpdateForm, postSave, postDelete }) {
+class RESTeasy {
+    /**
+     * Initializes a resteasy editor.
+     * @param {string} endpoint REST API endpoint
+     * @param {<table>} tableElement Table for listing items
+     * @param {string[]} tableFields item fields corresponding to each column in tableElement
+     * @param {<form>} formElement Form for editing item
+     * @param {function} [log]  for logging
+     * @param {string[]} [tableClasses] Array of classNames corresponding to each column in tableElement
+     * @param {<input>} [searchElement] Input for search term
+     * @param {string} [searchParam=q] querystring parameter name for search term
+     * @param {string} [pageSizeParam] querystring parameter name for pagination page size
+     * @param {string} [pageNumberParam] querystring parameter name for pagination page number
+     * @param {integer} [pageSize=10] Number of items to request per pagination page
+     * @param {integer} [pageIncrement=1] Amount to increase or decrease page number by
+     * @param {string} [pageTotalProperty] Search response property for the total number of paginated items, supports nested properties. e.g. "meta.total"
+     * @param {<button>} [pageNextElement] Button for requesting the next pagination page
+     * @param {<button>} [pagePreviousElement] Button for requesting the previous pagination page
+     * @param {<p>} [pageStatusElement] Text element for displaying the current and total number of pagination pages
+     * @param {<p>} [statusElement] Text element for displaying status and errors
+     * @param {<button>} [deleteElement] Button for deleting items
+     * @param {<button>} [createElement] Button for creating items 
+     * @param {string} [idField=id] item field used for identification
+     * @param {string} [nameField=name] item field to use for display name
+     */
+    constructor({
+        endpoint, tableElement, tableFields, formElement,
+        log, tableClasses = [], searchElement = {}, searchParam = 'q',
+        pageSizeParam, pageNumberParam, pageSize = 10, pageIncrement = 1, pageTotalProperty,
+        pageNextElement = {}, pagePreviousElement = {}, pageStatusElement = {},
+        statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
+        preSearch, preUpdateTable, preUpdateForm, preSave, preDelete,
+        postUpdateTable, postUpdateForm, postSave, postDelete
+    }) {
 
-    // BINDINGS ----------------------------------------------------------------
+        // BINDINGS ----------------------------------------------------------------
 
-    if (typeof endpoint !== 'string' || !endpoint.length)
-        throw 'Invalid endpoint passed to RESTeasy: must be non-empty string';
-    if (!(tableElement instanceof HTMLElement) || tableElement.nodeName !== 'TABLE')
-        throw 'Invalid tableElement passed to RESTeasy: must be a <table> object';
-    if (!Array.isArray(tableFields))
-        throw 'Invalid tableFields passed to RESTeasy: must be an array';
-    if (!(formElement instanceof HTMLElement) || formElement.nodeName !== 'FORM')
-        throw 'Invalid endpoint passed to RESTeasy: must be a <form> object';
-    if (!tableElement.tBodies.length)
-        throw 'tableElement passed to RESTeasy is missing <tbody>';
-    if (!formElement.elements[idField])
-        throw 'formElement passed to RESTeasy is missing <input name=[idField]>';
-    if (typeof headers !== 'object')
-        throw 'headers passed to RESTeasy was not an object';
+        if (typeof endpoint !== 'string' || !endpoint.length)
+            throw 'Invalid endpoint passed to RESTeasy: must be non-empty string';
+        if (!(tableElement instanceof HTMLElement) || tableElement.nodeName !== 'TABLE')
+            throw 'Invalid tableElement passed to RESTeasy: must be a <table> object';
+        if (!Array.isArray(tableFields))
+            throw 'Invalid tableFields passed to RESTeasy: must be an array';
+        if (!(formElement instanceof HTMLElement) || formElement.nodeName !== 'FORM')
+            throw 'Invalid endpoint passed to RESTeasy: must be a <form> object';
+        if (!tableElement.tBodies.length)
+            throw 'tableElement passed to RESTeasy is missing <tbody>';
+        if (!formElement.elements[idField])
+            throw 'formElement passed to RESTeasy is missing <input name=[idField]>';
+        if (typeof headers !== 'object')
+            throw 'headers passed to RESTeasy was not an object';
 
-    const tbody = tableElement.tBodies[0];
-    const fid = formElement.elements[idField];
-    const endpointBase = endpoint.includes('?') ? endpoint.split('?')[0] : endpoint;
+        if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
-    if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
+        if (typeof log !== 'function') log = () => { };
 
-    if (typeof log !== 'function') log = () => { };
+        // Programmatic ways of triggering operations
+        tableElement.easySelect = (id) => this.actionSelect(id);
+        tableElement.easyCreate = () => this.actionCreate();
+        tableElement.easyDelete = () => this.actionDelete();
+        tableElement.easySearch = () => this.actionSearch();
+        tableElement.easyNextPage = () => this.actionNextPage();
+        tableElement.easyPreviousPage = () => this.actionPreviousPage();
 
-    // Programmatic ways of triggering operations
-    tableElement.easySelect = (id) => actionSelect(id);
-    tableElement.easyCreate = () => actionCreate();
-    tableElement.easyDelete = () => actionDelete();
-    tableElement.easySearch = () => actionSearch();
-    tableElement.easyNextPage = () => actionNextPage();
-    tableElement.easyPreviousPage = () => actionPreviousPage();
+        let me = this;
 
-    formElement.onsubmit = function (e) {
-        e.preventDefault();
-        actionSave();
+        formElement.onsubmit = function (e) {
+            e.preventDefault();
+            me.actionSave();
+        }
+
+        formElement.onreset = function (e) {
+            e.preventDefault();
+            me.actionReset();
+        }
+
+        searchElement.onkeyup = function (e) {
+            e.preventDefault();
+            me.actionSearch();
+        }
+
+        deleteElement.onclick = function (e) {
+            e.preventDefault();
+            me.actionDelete();
+        }
+
+        createElement.onclick = function (e) {
+            e.preventDefault();
+            me.actionCreate();
+        }
+
+        pageNextElement.onclick = function (e) {
+            e.preventDefault();
+            me.actionNextPage();
+        }
+
+        pagePreviousElement.onclick = function (e) {
+            e.preventDefault();
+            me.actionPreviousPage();
+        }
+
+        // Set instance properties
+        this.endpoint = endpoint;
+        this.tableElement = tableElement;
+        this.tableFields = tableFields;
+        this.formElement = formElement;
+        this.log = log;
+        this.tableClasses = tableClasses;
+        this.searchElement = searchElement;
+        this.searchParam = searchParam;
+        this.pageSizeParam = pageSizeParam;
+        this.pageNumberParam = pageNumberParam;
+        this.pageSize = pageSize;
+        this.pageIncrement = pageIncrement;
+        this.pageTotalProperty = pageTotalProperty;
+        this.pageNextElement = pageNextElement;
+        this.pagePreviousElement = pagePreviousElement;
+        this.pageStatusElement = pageStatusElement;
+        this.statusElement = statusElement;
+        this.deleteElement = deleteElement;
+        this.createElement = createElement;
+        this.idField = idField;
+        this.nameField = nameField;
+        this.headers = headers;
+        this.preSearch = preSearch;
+        this.preUpdateTable = preUpdateTable;
+        this.preUpdateForm = preUpdateForm;
+        this.preSave = preSave;
+        this.preDelete = preDelete;
+        this.postUpdateTable = postUpdateTable;
+        this.postUpdateForm = postUpdateForm;
+        this.postSave = postSave;
+        this.postDelete = postDelete;
+        this.tbody = tableElement.tBodies[0];
+        this.fid = formElement.elements[idField];
+        this.endpointBase = endpoint.includes('?') ? endpoint.split('?')[0] : endpoint;
+        this.pageNumber = 0;
+        this.pageTotal = 0;
+        this._updateTable();
     }
-
-    formElement.onreset = function (e) {
-        e.preventDefault();
-        actionReset();
-    }
-
-    searchElement.onkeyup = function (e) {
-        e.preventDefault();
-        actionSearch();
-    }
-
-    deleteElement.onclick = function (e) {
-        e.preventDefault();
-        actionDelete();
-    }
-
-    createElement.onclick = function (e) {
-        e.preventDefault();
-        actionCreate();
-    }
-
-    pageNextElement.onclick = function (e) {
-        e.preventDefault();
-        actionNextPage();
-    }
-
-    pagePreviousElement.onclick = function (e) {
-        e.preventDefault();
-        actionPreviousPage();
-    }
-
-    //Load initial data
-    _updateTable();
-    let pageNumber = 0;
-    let pageTotal = 0;
 
 
     // ACTIONS -----------------------------------------------------------------
@@ -110,99 +145,99 @@ function resteasy({
     /**
      * Search for items in tableElement.
      */
-    async function actionSearch() {
+    async actionSearch() {
         try {
-            _updateStatus('Searching...');
-            pageNumber = 0;
-            await _updateTable();
-            _updateStatus('');
-        } catch (err) { }
+            this._updateStatus('Searching...');
+            this.pageNumber = 0;
+            await this._updateTable();
+            this._updateStatus('');
+        } catch (err) { this.log(err) }
     }
 
     /**
      * Show the next page of items in tableElement.
      */
-    async function actionNextPage() {
+    async actionNextPage() {
         try {
-            pageNumber += pageIncrement;
-            await _updateTable();
-        } catch (err) { }
+            this.pageNumber += this.pageIncrement;
+            await this._updateTable();
+        } catch (err) { this.log(err) }
     }
 
     /**
      * Show the previous page of items in tableElement.
      */
-    async function actionPreviousPage() {
+    async actionPreviousPage() {
         try {
-            pageNumber -= pageIncrement;
-            if (pageNumber < 0) pageNumber = 0;
-            await _updateTable();
-        } catch (err) { }
+            this.pageNumber -= this.pageIncrement;
+            if (this.pageNumber < 0) this.pageNumber = 0;
+            await this._updateTable();
+        } catch (err) { this.log(err) }
     }
 
     /**
      * Select item with id in tableElement.
      */
-    async function actionSelect(id) {
+    async actionSelect(id) {
         try {
-            _updateStatus('Working...');
-            _updateSelected(id);
-            const item = await _updateForm({ id });
-            _updateStatus('Editing existing item', item[nameField] || id);
-        } catch (err) { }
+            this._updateStatus('Working...');
+            this._updateSelected(id);
+            const item = await this._updateForm({ id });
+            this._updateStatus('Editing existing item', item[this.nameField] || id);
+        } catch (err) { this.log(err) }
     }
 
     /**
      * Delete the item selected in tableElement.
      */
-    async function actionDelete() {
+    async actionDelete() {
         try {
-            _updateStatus('Working...');
-            await _deleteSelected();
-            await _updateTable();
-            await _updateForm({});
-            _updateStatus('Item deleted');
-        } catch (err) { }
+            this._updateStatus('Working...');
+            await this._deleteSelected();
+            await this._updateTable();
+            await this._updateForm({});
+            this._updateStatus('Item deleted');
+        } catch (err) { this.log(err) }
     }
 
     /**
      * Begin editing a new item in formElement.
      */
-    async function actionCreate() {
+    async actionCreate() {
         try {
-            _updateStatus('Working...');
-            _updateSelected();
-            await _updateForm({});
-            _updateStatus('Editing new item');
-        } catch (err) { }
+            this._updateStatus('Working...');
+            this._updateSelected();
+            await this._updateForm({});
+            this._updateStatus('Editing new item');
+        } catch (err) { this.log(err) }
     }
 
     /**
      * Save changes made in formElement.
      */
-    async function actionSave() {
+    async actionSave() {
         try {
-            _updateStatus('Working...');
-            const item = await _save();
+            this._updateStatus('Working...');
+            const item = await this._save();
             if (item) {
-                await _updateForm({ item });
-                await _updateTable();
-                _updateSelected(item[idField]);
-                _updateStatus('Item saved\nEditing existing item', item[nameField] || item[idField]);
+                await this._updateForm({ item });
+                await this._updateTable();
+                this._updateSelected(item[this.idField]);
+                this._updateStatus('Item saved\nEditing existing item', item[this.nameField] || item[this.idField]);
             }
-        } catch (err) { }
+        } catch (err) { this.log(err) }
     }
 
     /**
      * Cancel unsaved changes in formElement.
      */
-    async function actionReset() {
+    async actionReset() {
         try {
-            _updateStatus('Working...');
-            const item = await _updateForm({ reload: true });
-            if (item !== {}) _updateStatus('Editing existing item', item[nameField] || item[idField]);
-            else _updateStatus('Editing new item');
-        } catch (err) { }
+            this._updateStatus('Working...');
+            const item = await this._updateForm({ reload: true });
+            if (item !== {}) this._updateStatus('Editing existing item', item[this.nameField] || item[this.idField]);
+            else this._updateStatus('Editing new item');
+        } catch (err) { this.log(err) }
     }
 
 
@@ -213,8 +248,8 @@ function resteasy({
      * All other rows will have their class reset.
      * If id is not set, no rows will be selected.
      */
-    function _updateSelected(id) {
-        Array.from(tableElement.rows).map(row => {
+    _updateSelected(id) {
+        Array.from(this.tableElement.rows).map(row => {
             if (row.id === id) row.classList.add('selected');
             else row.classList.remove('selected');
         });
@@ -223,58 +258,58 @@ function resteasy({
     /**
      * Fetches results matching the current search in searchElement and updates tableElement.
      */
-    async function _updateTable() {
+    async _updateTable() {
         try {
             // Support searching
-            let url = endpoint;
-            let searchValue = searchElement.value;
+            let url = this.endpoint;
+            let searchValue = this.searchElement.value;
 
-            searchValue = await _doHook(preSearch, searchValue);
+            searchValue = await this._doHook(this.preSearch, searchValue);
 
             // Determine query parameters
             let params = [];
-            if (searchValue) params.push(searchParam + '=' + searchValue);
-            if (pageSizeParam) params.push(pageSizeParam + '=' + pageSize);
-            if (pageNumberParam) params.push(pageNumberParam + '=' + pageNumber);
+            if (searchValue) params.push(this.searchParam + '=' + searchValue);
+            if (this.pageSizeParam) params.push(this.pageSizeParam + '=' + this.pageSize);
+            if (this.pageNumberParam) params.push(this.pageNumberParam + '=' + this.pageNumber);
             if (params.length) {
                 // Support endpoints with other query parameters
                 url += url.includes('?') ? '&' : '?';
                 url += params.join('&');
             }
 
-            let data = await fetchJSON(url, { headers }, { array: true, count: true });
+            let data = await this.fetchJSON(url, { headers: this.headers }, { array: true, count: true });
 
-            data = await _doHook(preUpdateTable, data);
+            data = await this._doHook(this.preUpdateTable, data);
 
             // Update table
-            tbody.innerHTML = '';
+            this.tbody.innerHTML = '';
             for (let item of data) {
                 let tr = document.createElement('tr');
-                tr.id = item[idField];
-                tr.addEventListener("click", actionSelect.bind(tr, tr.id));
+                tr.id = item[this.idField];
+                tr.addEventListener("click", this.actionSelect.bind(this, tr.id));
 
-                for (let col = 0; col < tableFields.length; col++) {
+                for (let col = 0; col < this.tableFields.length; col++) {
                     let td = document.createElement('td');
-                    td.innerText = deepFind(item, tableFields[col]);
-                    if (tableClasses.length > col) td.className = tableClasses[col];
+                    td.innerText = RESTeasy.deepFind(item, this.tableFields[col]);
+                    if (this.tableClasses.length > col) td.className = this.tableClasses[col];
                     tr.appendChild(td);
                 }
-                tbody.appendChild(tr);
+                this.tbody.appendChild(tr);
             }
 
-            await _doHook(postUpdateTable, data);
+            await this._doHook(this.postUpdateTable, data);
 
             // Update pagination status
-            if (pageTotal) {
-                let current = Math.floor(pageNumber / pageIncrement) + 1;
-                let total = Math.floor(pageTotal / pageIncrement) + 1;
-                pageStatusElement.innerText = 'Page ' + current + ' of ' + total;
-                pageNextElement.disabled = current === total;
-                pagePreviousElement.disabled = current === 1;
+            if (this.pageTotal) {
+                let current = Math.floor(this.pageNumber / this.pageIncrement) + 1;
+                let total = Math.floor(this.pageTotal / this.pageIncrement) + 1;
+                this.pageStatusElement.innerText = 'Page ' + current + ' of ' + total;
+                this.pageNextElement.disabled = current === total;
+                this.pagePreviousElement.disabled = current === 1;
             }
 
         } catch (err) {
-            _updateStatus('Failed to load items', err);
+            this._updateStatus('Failed to load items', err);
             throw err;
         }
     }
@@ -284,32 +319,32 @@ function resteasy({
      * If reload is true, the current item, if any will be re-fetched.
      * Returns the item.
      */
-    async function _updateForm({ item, id, reload }) {
+    async _updateForm({ item, id, reload }) {
         try {
             // Support reload
-            if (reload) id = fid.value;
+            if (reload) id = this.fid.value;
 
             // Support find by id
             if (!item && id) {
-                item = await fetchJSON(endpointBase + '/' + id, { headers }, { first: true });
+                item = await this.fetchJSON(this.endpointBase + '/' + id, { headers: this.headers }, { first: true });
             }
 
             // Support reset
             if (!item) item = {};
 
-            item = await _doHook(preUpdateForm, item);
+            item = await this._doHook(this.preUpdateForm, item);
 
-            _writeFormFields(item);
+            this._writeFormFields(item);
 
             // Clear any errors
-            _highlightErrors({});
+            this._highlightErrors({});
 
-            await _doHook(postUpdateForm, item);
+            await this._doHook(this.postUpdateForm, item);
 
             return item;
 
         } catch (err) {
-            _updateStatus('Failed to load item', err);
+            this._updateStatus('Failed to load item', err);
             throw err;
         }
     }
@@ -318,38 +353,38 @@ function resteasy({
      * Creates or updates a item using values form formElement.
      * Returns the updated item if the server returns it.
      */
-    async function _save() {
+    async _save() {
         try {
             // Determine method and URL for create/update
             let method = 'POST';
-            let url = endpointBase;
-            if (fid.value) {
+            let url = this.endpointBase;
+            if (this.fid.value) {
                 method = 'PUT';
-                url += '/' + fid.value;
+                url += '/' + this.fid.value;
             }
 
-            let data = _readFormFields();
+            let data = this._readFormFields();
 
-            data = await _doHook(preSave, data);
+            data = await this._doHook(this.preSave, data);
 
             let result;
             try {
-                result = await fetchJSON(url, {
-                    headers,
+                result = await this.fetchJSON(url, {
+                    headers: this.headers,
                     method,
                     body: JSON.stringify(data)
                 }, { first: true });
             } catch (err) {
-                _highlightErrors(err.errors || err.error || err);
+                this._highlightErrors(err.errors || err.error || err);
                 throw err;
             }
 
-            await _doHook(postSave, result);
+            await this._doHook(this.postSave, result);
 
             return result;
 
         } catch (err) {
-            _updateStatus('Item not saved', err);
+            this._updateStatus('Item not saved', err);
             throw err;
         }
     }
@@ -357,21 +392,21 @@ function resteasy({
     /**
      * Deletes the selected item.
      */
-    async function _deleteSelected() {
+    async _deleteSelected() {
         try {
 
-            const id = await _doHook(preDelete, fid.value);
+            const id = await this._doHook(this.preDelete, this.fid.value);
 
             if (!id) throw 'Nothing selected'; // NEVER DELETE endpoint/
 
-            const url = endpointBase + '/' + id;
+            const url = this.endpointBase + '/' + id;
 
-            let data = await fetchJSON(url, { headers, method: 'DELETE' }, { first: true });
+            let data = await this.fetchJSON(url, { headers: this.headers, method: 'DELETE' }, { first: true });
 
-            await _doHook(postDelete, data);
+            await this._doHook(this.postDelete, data);
 
         } catch (err) {
-            _updateStatus('Item not deleted', err);
+            this._updateStatus('Item not deleted', err);
             throw err;
         }
     }
@@ -379,8 +414,8 @@ function resteasy({
     /**
      * Set's the text content of statusElement to match status.
      */
-    function _updateStatus(text, status) {
-        log(text, status);
+    _updateStatus(text, status) {
+        this.log(text, status);
         let msg = text;
         if (status) {
             if (typeof status === 'object' && status.message) status = status.message;
@@ -388,14 +423,14 @@ function resteasy({
             else if (typeof status !== 'string') status = JSON.stringify(val, null, 2);
             msg += ':\n' + status;
         }
-        statusElement.innerText = msg;
+        this.statusElement.innerText = msg;
     }
 
     /**
      * Highlights erroneous fields in formElement.
      */
-    function _highlightErrors(errors) {
-        const elements = formElement.elements;
+    _highlightErrors(errors) {
+        const elements = this.formElement.elements;
         for (let field of elements) {
             let match = errors.hasOwnProperty(field.name);
             if (match) field.classList.add('invalidField');
@@ -406,10 +441,10 @@ function resteasy({
     /**
      * Set's formElement's fields to match obj.
      */
-    function _writeFormFields(obj) {
-        const elements = formElement.elements;
+    _writeFormFields(obj) {
+        const elements = this.formElement.elements;
         for (let field of elements) {
-            let val = deepFind(obj, field.name);
+            let val = RESTeasy.deepFind(obj, field.name);
             if (field.name) {
                 // Checkbox
                 if (field.type === 'checkbox') {
@@ -417,7 +452,7 @@ function resteasy({
                 }
                 // Date
                 else if (field.type === 'date') {
-                    field.value = val ? htmlDate(val) : '';
+                    field.value = val ? RESTeasy.htmlDate(val) : '';
                 }
                 // Select
                 else if (field.nodeName === 'SELECT' && typeof val === 'object') {
@@ -439,9 +474,9 @@ function resteasy({
     /**
      * Returns an object containing all values from formElement's inputs.
      */
-    function _readFormFields() {
+    _readFormFields() {
         let obj = {};
-        const elements = formElement.elements;
+        const elements = this.formElement.elements;
         for (let field of elements) {
 
             // Ignore unnamed or disabled controls
@@ -469,22 +504,22 @@ function resteasy({
             }
 
             // Assign value to object
-            obj = deepSet(obj, field.name, value);
+            obj = RESTeasy.deepSet(obj, field.name, value);
         }
         return obj;
     }
 
     /**
-     * Executes hook with data if it is a function, otherwise returns data.
+     * Executes hook with data if it is a , otherwise returns data.
      * Returns the result of the hook, or data if nothing is returned.
      * Failed hooks will be caught and logged, data will be returned.
      */
-    async function _doHook(hook, data) {
+    async _doHook(hook, data) {
         try {
             if (typeof hook === 'function') return await hook(data) || data;
             else return data;
         } catch (err) {
-            log('Error thrown by hook:\n', err);
+            log('Exception thrown by hook:\n', err);
             throw err;
         }
     }
@@ -492,12 +527,47 @@ function resteasy({
 
     // UTILITIES ---------------------------------------------------------------
 
+    async fetchJSON(url, options, { array, first, count }) {
+        const response = await fetch(url, options);
+
+        let data = {};
+
+        // Support 204 (no content) when no results
+        if (response.status === 204) return array ? [] : undefined;
+
+        data = await response.json();
+
+        // Check for HTTP error
+        if (!response.ok) throw data;
+
+        // Update page total if needed
+        if (count && this.pageTotalProperty && typeof data === 'object') {
+            this.pageTotal = RESTeasy.deepFind(data, this.pageTotalProperty) || 0;
+        }
+
+        // Support either [item] or {results:[{item}]}
+        if (array && Array.isArray(data)) return data;
+        if (array && Array.isArray(data.results)) return data.results;
+        if (array) return [];
+
+        if (first && Array.isArray(data)) {
+            if (!data.length) return;
+            return data[0];
+        }
+        if (first && Array.isArray(data.results)) {
+            if (!data.results.length) return;
+            return data.results[0];
+        }
+
+        return data;
+    }
+
     /**
      * Gets value from obj at path.
      * Path can be shallow or deep
      * e.g. obj[a] or obj[a[b]]
      */
-    function deepFind(obj, path) {
+    static deepFind(obj, path) {
         // Shallow (e.g. {name})
         if (!path.includes('.')) return obj[path];
 
@@ -516,7 +586,7 @@ function resteasy({
      * Path can be shallow or deep
      * e.g. obj[a] or obj[a[b]]
      */
-    function deepSet(obj, path, value) {
+    static deepSet(obj, path, value) {
         // Shallow (e.g. {name})
         if (!path.includes('.')) {
             obj[path] = value;
@@ -536,46 +606,11 @@ function resteasy({
     /**
      * Converts a JSON date string to a HTML date string.
      */
-    function htmlDate(str) {
+    static htmlDate(str) {
         const date = new Date(str);
         const d = ("0" + date.getDate()).slice(-2);
         const m = ("0" + (date.getMonth() + 1)).slice(-2);
         const y = date.getFullYear();
         return y + "-" + m + "-" + d;
-    }
-
-    async function fetchJSON(url, options, { array, first, count }) {
-        const response = await fetch(url, options);
-
-        let data = {};
-
-        // Support 204 (no content) when no results
-        if (response.status === 204) return array ? [] : undefined;
-
-        data = await response.json();
-
-        // Check for HTTP error
-        if (!response.ok) throw data;
-
-        // Update page total if needed
-        if (count && pageTotalProperty && typeof data === 'object') {
-            pageTotal = deepFind(data, pageTotalProperty) || 0;
-        }
-
-        // Support either [item] or {results:[{item}]}
-        if (array && Array.isArray(data)) return data;
-        if (array && Array.isArray(data.results)) return data.results;
-        if (array) return [];
-
-        if (first && Array.isArray(data)) {
-            if (!data.length) return;
-            return data[0];
-        }
-        if (first && Array.isArray(data.results)) {
-            if (!data.results.length) return;
-            return data.results[0];
-        }
-
-        return data;
     }
 }
