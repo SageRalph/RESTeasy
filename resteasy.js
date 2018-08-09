@@ -17,7 +17,7 @@
 function resteasy({
     endpoint, tableElement, tableFields, formElement,
     log, tableClasses = [], searchElement = {}, searchParam = 'q',
-    pageSizeParam, pageNumberParam, pageSize = 10, pageIncrement = 1,
+    pageSizeParam, pageNumberParam, pageSize = 10, pageIncrement = 1, pageTotalProperty,
     pageNextElement = {}, pagePreviousElement = {}, pageStatusElement = {},
     statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
     preSearch, preUpdateTable, preUpdateForm, preSave, preDelete,
@@ -94,6 +94,7 @@ function resteasy({
     //Load initial data
     _updateTable();
     let pageNumber = 0;
+    let pageTotal = 0;
 
 
     // ACTIONS -----------------------------------------------------------------
@@ -115,10 +116,8 @@ function resteasy({
      */
     async function actionNextPage() {
         try {
-            _updateStatus('Searching...');
             pageNumber += pageIncrement;
             await _updateTable();
-            _updateStatus('');
         } catch (err) { }
     }
 
@@ -127,11 +126,9 @@ function resteasy({
      */
     async function actionPreviousPage() {
         try {
-            _updateStatus('Searching...');
             pageNumber -= pageIncrement;
             if (pageNumber < 0) pageNumber = 0;
             await _updateTable();
-            _updateStatus('');
         } catch (err) { }
     }
 
@@ -237,7 +234,7 @@ function resteasy({
                 url += params.join('&');
             }
 
-            let data = await fetchJSON(url, { headers }, { array: true });
+            let data = await fetchJSON(url, { headers }, { array: true, count: true });
 
             data = await _doHook(preUpdateTable, data);
 
@@ -258,6 +255,15 @@ function resteasy({
             }
 
             await _doHook(postUpdateTable, data);
+
+            // Update pagination status
+            if (pageTotal) {
+                let current = Math.floor(pageNumber / pageIncrement) + 1;
+                let total = Math.floor(pageTotal / pageIncrement) + 1;
+                pageStatusElement.innerText = 'Page ' + current + ' of ' + total;
+                pageNextElement.disabled = current === total;
+                pagePreviousElement.disabled = current === 1;
+            }
 
         } catch (err) {
             _updateStatus('Failed to load items', err);
@@ -474,86 +480,94 @@ function resteasy({
             throw err;
         }
     }
-}
 
-/**
- * Gets value from obj at path.
- * Path can be shallow or deep
- * e.g. obj[a] or obj[a[b]]
- */
-function deepFind(obj, path) {
-    // Shallow (e.g. {name})
-    if (!path.includes('.')) return obj[path];
 
-    // Deep (e.g. {address:{street}})
-    const parts = path.split('.')
-    let cursor = obj;
-    for (let field of parts) {
-        if (cursor[field] == undefined) return undefined;
-        else cursor = cursor[field];
+    // UTILITIES ---------------------------------------------------------------
+
+    /**
+     * Gets value from obj at path.
+     * Path can be shallow or deep
+     * e.g. obj[a] or obj[a[b]]
+     */
+    function deepFind(obj, path) {
+        // Shallow (e.g. {name})
+        if (!path.includes('.')) return obj[path];
+
+        // Deep (e.g. {address:{street}})
+        const parts = path.split('.')
+        let cursor = obj;
+        for (let field of parts) {
+            if (cursor[field] == undefined) return undefined;
+            else cursor = cursor[field];
+        }
+        return cursor;
     }
-    return cursor;
-}
 
-/**
- * Sets value in obj at path.
- * Path can be shallow or deep
- * e.g. obj[a] or obj[a[b]]
- */
-function deepSet(obj, path, value) {
-    // Shallow (e.g. {name})
-    if (!path.includes('.')) {
-        obj[path] = value;
+    /**
+     * Sets value in obj at path.
+     * Path can be shallow or deep
+     * e.g. obj[a] or obj[a[b]]
+     */
+    function deepSet(obj, path, value) {
+        // Shallow (e.g. {name})
+        if (!path.includes('.')) {
+            obj[path] = value;
+            return obj;
+        }
+        // Deep (e.g. {address:{street}})
+        let parts = path.split('.');
+        let cursor = obj;
+        for (let field of parts.slice(0, -1)) {
+            if (cursor[field] === undefined) cursor[field] = {};
+            cursor = cursor[field];
+        }
+        cursor[parts.pop()] = value;
         return obj;
     }
-    // Deep (e.g. {address:{street}})
-    let parts = path.split('.');
-    let cursor = obj;
-    for (let field of parts.slice(0, -1)) {
-        if (cursor[field] === undefined) cursor[field] = {};
-        cursor = cursor[field];
-    }
-    cursor[parts.pop()] = value;
-    return obj;
-}
 
-/**
- * Converts a JSON date string to a HTML date string.
- */
-function htmlDate(str) {
-    const date = new Date(str);
-    const d = ("0" + date.getDate()).slice(-2);
-    const m = ("0" + (date.getMonth() + 1)).slice(-2);
-    const y = date.getFullYear();
-    return y + "-" + m + "-" + d;
-}
-
-async function fetchJSON(url, options, { array, first }) {
-    const response = await fetch(url, options);
-
-    let data = {};
-
-    // Support 204 (no content) when no results
-    if (response.status === 204) return array ? [] : undefined;
-
-    data = await response.json();
-
-    // Check for HTTP error
-    if (!response.ok) throw data;
-
-    // Support either [item] or {results:[{item}]}
-    if (array && Array.isArray(data)) return data;
-    if (array && Array.isArray(data.results)) return data.results;
-    if (array) return [];
-
-    if (first && Array.isArray(data)) {
-        if (!data.length) return;
-        return data[0];
-    }
-    if (first && Array.isArray(data.results)) {
-        if (!data.results.length) return;
-        return data.results[0];
+    /**
+     * Converts a JSON date string to a HTML date string.
+     */
+    function htmlDate(str) {
+        const date = new Date(str);
+        const d = ("0" + date.getDate()).slice(-2);
+        const m = ("0" + (date.getMonth() + 1)).slice(-2);
+        const y = date.getFullYear();
+        return y + "-" + m + "-" + d;
     }
 
-    return data;
+    async function fetchJSON(url, options, { array, first, count }) {
+        const response = await fetch(url, options);
+
+        let data = {};
+
+        // Support 204 (no content) when no results
+        if (response.status === 204) return array ? [] : undefined;
+
+        data = await response.json();
+
+        // Check for HTTP error
+        if (!response.ok) throw data;
+
+        // Update page total if needed
+        if (count && pageTotalProperty && typeof data === 'object') {
+            pageTotal = deepFind(data, pageTotalProperty) || 0;
+        }
+
+        // Support either [item] or {results:[{item}]}
+        if (array && Array.isArray(data)) return data;
+        if (array && Array.isArray(data.results)) return data.results;
+        if (array) return [];
+
+        if (first && Array.isArray(data)) {
+            if (!data.length) return;
+            return data[0];
+        }
+        if (first && Array.isArray(data.results)) {
+            if (!data.results.length) return;
+            return data.results[0];
+        }
+
+        return data;
+    }
 }
