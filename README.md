@@ -3,7 +3,7 @@ RESTeasy lets you focus on markup and styling by abstracting away all the boiler
 
 ## Features
 RESTeasy can:
-- Display resources in a table (also supports searching)
+- Display resources in a table, with support for searching and pagination
 - Populate a form with the item selected in the table
 - Save changes to the selected item
 - Delete the selected item
@@ -25,40 +25,50 @@ Using RESTeasy is as simple as importing the library (using a `<script>` tag) an
 
 Parameters should be supplied as an object, supporting the following properties:
 
-Name          | Type      |               | Description
-------------- | --------- | ------------- | -------------- 
-endpoint      |`string`   | **Required**  | The REST API endpoint for this resource.
-tableElement  |`<table>`  | **Required**  | An HTML `<table>` for listing items, an item can be selected for editing by selecting them in this table. <br>The table must have a `<tbody>`.
-tableFields   |`string[]` | **Required**  | An array of item fields corresponding to each column in tableElement. <br>Supports sub-properties. e.g. `["address.postcode"]`
-formElement   |`<form>`   | **Required**  | An HTML `<form>` for editing items. <br>The form must have an `<input>` with name equal to idField. <br>e.g. `<input type="hidden" name="id">`
-log           |`function` | Optional      | A function for logging actions and errors. If not set (or not a function), nothing will be logged.
-tableClasses  |`string[]` | Optional      | An array of classNames to apply to cells, corresponding to each column in tableElement.
-searchElement | `<input>` | Optional      | An HTML `<input>` for the search term. <br>This can be any element with a `.value` property.
-searchParam   | `string`  | Optional      | The querystring parameter name for the search term.
-statusElement | `<p>`     | Optional      | An HTML element for displaying status and errors. <br>This can be any element with a `.innerText` property.
-deleteElement |`<button>` | Optional      | An HTML control for deleting the selected item. <br>This can be any element which fires a `submit` event.
-createElement |`<button>` | Optional      | An HTML control for creating new items. <br>This can be any element which fires a `submit` event.
-idField       |`string`   | Optional      | The item field to use for identification, defaults to "id". <br>RESTeasy will not function if this is not correct. <br>If your database is MongoDB, this is usually "_id".
-nameField     |`string`   | Optional      | The item field to use for display name, defaults to "name".
-headers       | `object`  | Optional      | An object containing headers to include in all requests. <br>Content-type will default to `application/json` if not set.
+Name                | Type      |                 | Description
+------------------- | --------- | --------------- | -------------- 
+endpoint            |`string`   | **Required**    | The REST API endpoint for this resource.
+tableElement        |`<table>`  | **Required**    | An HTML `<table>` for listing items, an item can be selected for editing by selecting them in this table. <br>The table must have a `<tbody>`.
+tableFields         |`string[]` | **Required**    | An array of item fields corresponding to each column in tableElement. <br>Supports sub-properties. e.g. `["address.postcode"]`
+formElement         |`<form>`   | **Required**    | An HTML `<form>` for editing items. <br>The form must have an `<input>` with name equal to idField. <br>e.g. `<input type="hidden" name="id">`
+log                 |`function` | Optional        | A function for logging actions and errors. If not set (or not a function), nothing will be logged.
+tableClasses        |`string[]` | Optional        | An array of classNames to apply to cells, corresponding to each column in tableElement.
+searchElement       |`<input>`  | Optional        | An HTML `<input>` for the search term. <br>This can be any element with a `.value` property.
+searchParam         |`string`   | Default: 'q'    | The querystring parameter name for the search term.
+pageSizeParam       |`string`   | Optional        | The querystring parameter name for pagination page size.
+pageNumberParam     |`string`   | Optional        | The querystring parameter name for pagination page number.
+pageSize            |`integer`  | Default: 10     | The number of items to request per pagination page.
+pageIncrement       |`integer`  | Default: 1      | The amount to increase or decrease page number by. This will typically be either 1 or pageSize.
+pageTotalProperty   |`string`   | Optional        | The search response property for the total number of paginated items. <br>Supports nested properties. <br>e.g. `"meta.total"`
+pageNextElement     |`<button>` | Optional        | An HTML control for requesting the next pagination page.
+pagePreviousElement |`<button>` | Optional        | An HTML control for requesting the previous pagination page.
+pageStatusElement   |`<p>`      | Optional        | An HTML element for displaying status and errors. <br>This can be any element with a `.innerText` property.
+statusElement       |`<p>`      | Optional        | An HTML element for displaying status and errors. <br>This can be any element with a `.innerText` property.
+deleteElement       |`<button>` | Optional        | An HTML control for deleting the selected item. <br>This can be any element which fires a `submit` event.
+createElement       |`<button>` | Optional        | An HTML control for creating new items. <br>This can be any element which fires a `submit` event.
+idField             |`string`   | Optional        | The item field to use for identification, defaults to "id". <br>RESTeasy will not function if this is not correct. <br>If your database is MongoDB, this is usually `"_id"`.
+nameField           |`string`   | Default: 'name' | The item field to use for display name.
+headers             |`object`   | Optional        | An object containing headers to include in all requests. <br>Content-type will default to `application/json` if not set.
 
 If RESTeasy is not initialized correctly it will let you know what's wrong in the browser console.
 
 #### Events and functions
 RESTeasy intercepts events fired by the HTML elements supplied. You can also trigger some actions programmatically using additional functions RESTeasy attaches to those elements.
 
-Element           | Function    | Action
------------------ | ----------- | -------------- 
-tableElement      |`easyCreate` | Resets the selection in tableElement and clears formElement.
-tableElement      |`easyDelete` | Deletes the item selected in tableElement and clear formElement.
-tableElement      |`easySearch` | Searches for items matching the query in searchElement and updates tableElement.
-tableElement      |`easySelect` | Uses id passed as a parameter to selects an item in tableElement and load its values into formElement. <br>If an id is not supplied or matches no items, the selection will be cleared.
-tableElement.row  |`onclick`    | Selects the clicked row in tableElement and loads the item's values into formElement.
-formElement       |`onsubmit`   | Saves the item being edited in formElement. Uses POST for new items, or PUT if editing.
-formElement       |`onreset`    | Reloads the values of the item being edited in formElement.
-searchElement     |`onkeyup`    | Same as easySearch.
-createElement     |`onclick`    | Same as easyCreate.
-deleteElement     |`onclick`    | Same as easyDelete.
+Element           | Function          | Action
+----------------- | ----------------- | -------------- 
+tableElement      |`easyCreate`       | Resets the selection in tableElement and clears formElement.
+tableElement      |`easyDelete`       | Deletes the item selected in tableElement and clear formElement.
+tableElement      |`easySearch`       | Searches for items matching the query in searchElement and updates tableElement.
+tableElement      |`easyNextPage`     | Requests the next page of results and updates tableElement.
+tableElement      |`easyPreviousPage` | Requests the previous page of results and updates tableElement.
+tableElement      |`easySelect(id)`   | Uses id passed as a parameter to selects an item in tableElement and load its values into formElement. <br>If an id is not supplied or matches no items, the selection will be cleared.
+tableElement.row  |`onclick`          | Selects the clicked row in tableElement and loads the item's values into formElement.
+formElement       |`onsubmit`         | Saves the item being edited in formElement. Uses POST for new items, or PUT if editing.
+formElement       |`onreset`          | Reloads the values of the item being edited in formElement.
+searchElement     |`onkeyup`          | Same as easySearch.
+createElement     |`onclick`          | Same as easyCreate.
+deleteElement     |`onclick`          | Same as easyDelete.
 
 #### Life-cycle hooks
 RESTeasy also supports life-cycle hooks. These are optional functions you can pass as parameters on initialization.    
