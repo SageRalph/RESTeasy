@@ -29,7 +29,7 @@ class RESTeasy {
         pageSizeParam, pageNumberParam, pageSize = 10, pageIncrement = 1, pageTotalProperty,
         pageNextElement = {}, pagePreviousElement = {}, pageStatusElement = {},
         statusElement = {}, deleteElement = {}, createElement = {}, idField = 'id', nameField = 'name', headers = {},
-        preSearch, preUpdateTable, preUpdateForm, preSave, preDelete,
+        preSearch, preUpdateTable, preFindByID, preUpdateForm, preSave, preDelete,
         postUpdateTable, postUpdateForm, postSave, postDelete
     }) {
 
@@ -124,6 +124,7 @@ class RESTeasy {
         this.headers = headers;
         this.preSearch = preSearch;
         this.preUpdateTable = preUpdateTable;
+        this.preFindByID = preFindByID;
         this.preUpdateForm = preUpdateForm;
         this.preSave = preSave;
         this.preDelete = preDelete;
@@ -261,10 +262,10 @@ class RESTeasy {
     async _updateTable() {
         try {
             // Support searching
-            let url = this.endpoint;
+            const meta = { url: this.endpoint };
             let searchValue = this.searchElement.value;
 
-            searchValue = await this._doHook(this.preSearch, searchValue);
+            searchValue = await this._doHook(this.preSearch, searchValue, meta);
 
             // Determine query parameters
             let params = [];
@@ -273,11 +274,11 @@ class RESTeasy {
             if (this.pageNumberParam) params.push(this.pageNumberParam + '=' + this.pageNumber);
             if (params.length) {
                 // Support endpoints with other query parameters
-                url += url.includes('?') ? '&' : '?';
-                url += params.join('&');
+                meta.url += meta.url.includes('?') ? '&' : '?';
+                meta.url += params.join('&');
             }
 
-            let data = await this.fetchJSON(url, { headers: this.headers }, { array: true, count: true });
+            let data = await this.fetchJSON(meta.url, { headers: this.headers }, { array: true, count: true });
 
             data = await this._doHook(this.preUpdateTable, data);
 
@@ -326,7 +327,11 @@ class RESTeasy {
 
             // Support find by id
             if (!item && id) {
-                item = await this.fetchJSON(this.endpointBase + '/' + id, { headers: this.headers }, { first: true });
+                let meta = { url: this.endpointBase };
+
+                id = await this._doHook(this.preFindByID, id, meta);
+
+                item = await this.fetchJSON(meta.url + '/' + id, { headers: this.headers }, { first: true });
             }
 
             // Support reset
@@ -355,21 +360,23 @@ class RESTeasy {
      */
     async _save() {
         try {
-            // Determine method and URL for create/update
-            let method = 'POST';
-            let url = this.endpointBase;
-            if (this.fid.value) {
-                method = 'PUT';
-                url += '/' + this.fid.value;
-            }
 
             let data = this._readFormFields();
 
-            data = await this._doHook(this.preSave, data);
+            let meta = { url: this.endpointBase };
+
+            data = await this._doHook(this.preSave, data, meta);
+
+            // Determine method and URL for create/update
+            let method = 'POST';
+            if (this.fid.value) {
+                method = 'PUT';
+                meta.url += '/' + this.fid.value;
+            }
 
             let result;
             try {
-                result = await this.fetchJSON(url, {
+                result = await this.fetchJSON(meta.url, {
                     headers: this.headers,
                     method,
                     body: JSON.stringify(data)
@@ -395,13 +402,15 @@ class RESTeasy {
     async _deleteSelected() {
         try {
 
-            const id = await this._doHook(this.preDelete, this.fid.value);
+            const meta = { url: this.endpointBase };
+
+            const id = await this._doHook(this.preDelete, this.fid.value, meta);
 
             if (!id) throw 'Nothing selected'; // NEVER DELETE endpoint/
 
-            const url = this.endpointBase + '/' + id;
+            meta.url = meta.url + '/' + id;
 
-            let data = await this.fetchJSON(url, { headers: this.headers, method: 'DELETE' }, { first: true });
+            let data = await this.fetchJSON(meta.url, { headers: this.headers, method: 'DELETE' }, { first: true });
 
             await this._doHook(this.postDelete, data);
 
@@ -514,9 +523,9 @@ class RESTeasy {
      * Returns the result of the hook, or data if nothing is returned.
      * Failed hooks will be caught and logged, data will be returned.
      */
-    async _doHook(hook, data) {
+    async _doHook(hook, data, meta) {
         try {
-            if (typeof hook === 'function') return await hook(data) || data;
+            if (typeof hook === 'function') return await hook(data, meta) || data;
             else return data;
         } catch (err) {
             log('Exception thrown by hook:\n', err);

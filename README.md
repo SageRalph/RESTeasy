@@ -78,18 +78,20 @@ Hooks should be awaitable functions (either synchronous or return a promise) and
 
 There are two types of hooks: pre and post. pre hooks give the opportunity to modify data before an action is performed, or block the action by throwing an error. post hooks allow you to react to actions.    
 
-Both types of hooks will be passed a data object as a parameter, pre hooks may return a modified data object. If a pre hook does not return anything the data will continue unmodified. If a pre hook throws an error, the life-cycle operation will not proceed. If a hook throws an error the failure will be logged to the browser console and displayed in statusElement. post hooks will only be run if the life-cycle operation (and any pre hooks) was successful.     
+Both types of hooks will be passed a data object as a parameter, pre hooks may return a modified data object. If a pre hook does not return anything the data will continue unmodified. If a pre hook throws an error, the life-cycle operation will not proceed. If a hook throws an error the failure will be logged to the browser console and displayed in statusElement. post hooks will only be run if the life-cycle operation (and any pre hooks) was successful.  
+Some hooks will also be passed a meta object as the second parameter. This object can be modified in pre hooks to change the action, for example, by rewriting the target URL. Refer to the table below for available meta properties.   
 
 Name            | Description
 --------------- | -------------- 
-preSearch       | Called with the term to search with (if any). <br>Allows interruption of the action, or modification of query before the request is sent. <br>*Note: There is no postSearch event as searching is immediately followed by updateTable. The response to the query can be obtained from preUpdateTable.* <br>*Note 2: This hook will be run even if searchElement is not set, allowing for programmatic query generation.*
+preSearch       | Called with the term to search with (if any). <br>Allows interruption of the action, or modification of the query or meta.url before the request is sent. <br>*Note: There is no postSearch event as searching is immediately followed by updateTable. The response to the query can be obtained from preUpdateTable.* <br>*Note 2: This hook will be run even if searchElement is not set, allowing for programmatic query generation.*
 preUpdateTable  | Called with the array of search results to be displayed. <br>Allows modification of results before they are written to the table.
 postUpdateTable | Called with the array of search results displayed.
+preFindByID     | Called with the id of the resource to be read. <br>Allows interruption of the action, or modification of meta.url before the request is sent. <br>*Note: There is no postFindByID event as the request is immediately followed by updateForm. The response to the query can be obtained from preUpdateForm.*
 preUpdateForm   | Called with the resource to be written. <br>Allows interruption of the action, or modification of the resource before it is written to the form.
 postUpdateForm  | Called with the resource that was written to the form.
-preSave         | Called with the resource to be saved. <br>Allows interruption of the action, or modification of the resource before it is saved.
+preSave         | Called with the resource to be saved. <br>Allows interruption of the action, or modification of the resource or meta.url before the request is sent.
 postSave        | Called with the response from saving the resource. 
-preDelete       | Called with the id of the resource to be deleted. <br>Allows interruption of the action. <br>*Note: This hook will be run even if no element is selected, allowing for programmatic selection. The delete event will only proceed if an element was selected or a value is returned by this hook*
+preDelete       | Called with the id of the resource to be deleted. <br>Allows interruption of the action, or modification of meta.url before the request is sent. <br>*Note: This hook will be run even if no element is selected, allowing for programmatic selection. The delete event will only proceed if an element was selected or a value is returned by this hook*
 postDelete      | Called with the response from deleting the resource. 
 
 ### Form Design
