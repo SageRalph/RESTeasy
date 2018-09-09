@@ -7,7 +7,7 @@ class RESTeasy {
      * @param {<form>} formElement Form for editing item
      * @param {function} [log]  for logging
      * @param {string[]} [tableClasses] Array of classNames corresponding to each column in tableElement
-     * @param {<input>} [searchElement] Input for search term
+     * @param {<input>} [searchElement] Input or Form for search term
      * @param {string} [searchParam=q] querystring parameter name for search term
      * @param {string} [pageSizeParam] querystring parameter name for pagination page size
      * @param {string} [pageNumberParam] querystring parameter name for pagination page number
@@ -74,9 +74,12 @@ class RESTeasy {
             me.actionReset();
         }
 
-        searchElement.onkeyup = function (e) {
+        searchElement.onchange = function (e) {
             e.preventDefault();
             me.actionSearch();
+        }
+        searchElement.onsubmit = function (e) {
+            e.preventDefault();
         }
 
         deleteElement.onclick = function (e) {
@@ -241,6 +244,28 @@ class RESTeasy {
         } catch (err) { this.log(err) }
     }
 
+    /**
+     * Returns the URI encoded value of searchElement.
+     * A value will only be returned if searchElement is an HTML <input> or <form>.
+     */
+    getSearchValue() {
+        let se = this.searchElement;
+
+        // Handle as <input>
+        if (se instanceof HTMLInputElement) {
+            return this.searchParam + '=' + se.value;
+        }
+
+        // Handle as <form>
+        if (se instanceof HTMLFormElement) {
+            let obj = this._readFormFields(se);
+            let strings = Object.keys(obj).reduce(
+                (a, k) => { a.push(k + '=' + obj[k]); return a; }, []
+            );
+            return strings.join('&');
+        }
+    }
+
 
     // BEHAVIORS ---------------------------------------------------------------
 
@@ -263,13 +288,13 @@ class RESTeasy {
         try {
             // Support searching
             const meta = { url: this.endpoint };
-            let searchValue = this.searchElement.value;
+            let searchValue = this.getSearchValue();
 
             searchValue = await this._doHook(this.preSearch, searchValue, meta);
 
             // Determine query parameters
             let params = [];
-            if (searchValue) params.push(this.searchParam + '=' + searchValue);
+            if (searchValue) params.push(searchValue);
             if (this.pageSizeParam) params.push(this.pageSizeParam + '=' + this.pageSize);
             if (this.pageNumberParam) params.push(this.pageNumberParam + '=' + this.pageNumber);
             if (params.length) {
@@ -361,7 +386,7 @@ class RESTeasy {
     async _save() {
         try {
 
-            let data = this._readFormFields();
+            let data = this._readFormFields(this.formElement);
 
             let meta = { url: this.endpointBase };
 
@@ -483,9 +508,9 @@ class RESTeasy {
     /**
      * Returns an object containing all values from formElement's inputs.
      */
-    _readFormFields() {
+    _readFormFields(form) {
         let obj = {};
-        const elements = this.formElement.elements;
+        const elements = form.elements;
         for (let field of elements) {
 
             // Ignore unnamed or disabled controls

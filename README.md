@@ -13,12 +13,12 @@ RESTeasy can:
 All without you writing any JavaScript (other than initializing RESTeasy).
 
 ## Requirements
-RESTeasy has absolutley zero dependencies, no jQuery needed.
+RESTeasy has absolutely zero dependencies, no jQuery needed.
 
 RESTeasy uses modern JavaScript language features including Async/Await, map, fetch, and object destructuring. These are supported natively by recent versions of Chrome and Firefox, but transpiling with babel is recommended to support other browsers.
 
 ## Demo
-The demo folder contains a single page site demostrating usage of RESTeasy. You can open this in directly your web browser, no server required.
+The demo folder contains a single page site demonstrating usage of RESTeasy. You can open this in directly your web browser, no server required.
 
 ## Usage
 Using RESTeasy is as simple as importing the library (using a `<script>` tag) and calling `resteasy({params})`.
@@ -33,8 +33,8 @@ tableFields         |`string[]` | **Required**    | An array of item fields corr
 formElement         |`<form>`   | **Required**    | An HTML `<form>` for editing items. <br>The form must have an `<input>` with name equal to idField. <br>e.g. `<input type="hidden" name="id">`
 log                 |`function` | Optional        | A function for logging actions and errors. If not set (or not a function), nothing will be logged.
 tableClasses        |`string[]` | Optional        | An array of classNames to apply to cells, corresponding to each column in tableElement.
-searchElement       |`<input>`  | Optional        | An HTML `<input>` for the search term. <br>This can be any element with a `.value` property.
-searchParam         |`string`   | Default: 'q'    | The querystring parameter name for the search term.
+searchElement       |`<input>`  | Optional        | An HTML `<input>` or `<form>` for search inputs.
+searchParam         |`string`   | Default: 'q'    | The querystring parameter name for the search term. Only used if searchElement is an `<input>`.
 pageSizeParam       |`string`   | Optional        | The querystring parameter name for pagination page size.
 pageNumberParam     |`string`   | Optional        | The querystring parameter name for pagination page number.
 pageSize            |`integer`  | Default: 10     | The number of items to request per pagination page.
@@ -66,7 +66,7 @@ tableElement        |`easySelect(id)`   | Uses id passed as a parameter to selec
 tableElement.row    |`onclick`          | Selects the clicked row in tableElement and loads the item's values into formElement.
 formElement         |`onsubmit`         | Saves the item being edited in formElement. Uses POST for new items, or PUT if editing.
 formElement         |`onreset`          | Reloads the values of the item being edited in formElement.
-searchElement       |`onkeyup`          | Same as `easySearch`.
+searchElement       |`onchange`         | Same as `easySearch`.
 pageNextElement     |`onclick`          | Same as `easyNextPage`.
 pagePreviousElement |`onclick`          | Same as `easyPreviousPage`.
 createElement       |`onclick`          | Same as `easyCreate`.
@@ -129,7 +129,7 @@ Produces:
 `{ tags: ["REST", "client", "library"] }`
 
 - JSON editing is supported in `<textarea>`s by adding the class `formatJSON`.   
-`JSON.parse()` is used to read the content. If parsing fails, the field will be ommited.      
+`JSON.parse()` is used to read the content. If parsing fails, the field will be omitted.      
 e.g.   
 `<textarea name="myjsonfield" class="formatJSON" value="{ a: { b: 'c' } }"></textarea>`   
 Produces:   
