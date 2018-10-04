@@ -308,19 +308,30 @@ class RESTeasy {
             data = await this._doHook(this.preUpdateTable, data);
 
             // Update table
-            this.tbody.innerHTML = '';
-            for (let item of data) {
-                let tr = document.createElement('tr');
-                tr.id = item[this.idField];
-                tr.addEventListener("click", this.actionSelect.bind(this, tr.id));
+            if (!Array.isArray(data) || !data.length) {
+                // Display no items notice
+                this.tbody.innerHTML = '\
+                <tr>\
+                    <td style="text-align:center" colspan=' + this.tableFields.length + '>\
+                        <strong>No items found</strong>\
+                    </td>\
+                </tr>';
+            } else {
+                // Display items
+                this.tbody.innerHTML = '';
+                for (let item of data) {
+                    let tr = document.createElement('tr');
+                    tr.id = item[this.idField];
+                    tr.addEventListener("click", this.actionSelect.bind(this, tr.id));
 
-                for (let col = 0; col < this.tableFields.length; col++) {
-                    let td = document.createElement('td');
-                    td.innerText = RESTeasy.deepFind(item, this.tableFields[col]);
-                    if (this.tableClasses.length > col) td.className = this.tableClasses[col];
-                    tr.appendChild(td);
+                    for (let col = 0; col < this.tableFields.length; col++) {
+                        let td = document.createElement('td');
+                        td.innerText = RESTeasy.deepFind(item, this.tableFields[col]);
+                        if (this.tableClasses.length > col) td.className = this.tableClasses[col];
+                        tr.appendChild(td);
+                    }
+                    this.tbody.appendChild(tr);
                 }
-                this.tbody.appendChild(tr);
             }
 
             await this._doHook(this.postUpdateTable, data);
@@ -492,12 +503,26 @@ class RESTeasy {
                 else if (field.nodeName === 'SELECT' && typeof val === 'object') {
                     field.value = val[this.idField];
                 }
-                // JSON, Array, or Text
+                // Other input types
                 else {
                     let value;
-                    if (field.classList.contains('formatJSON')) value = JSON.stringify(val, null, 2);
-                    else if (field.classList.contains('formatArray')) value = Array.isArray(val) ? val.join('\n') : val;
-                    else value = (val === undefined || val === null) ? '' : val;
+
+                    // JSON
+                    if (field.classList.contains('formatJSON')) {
+                        if (val === undefined || val === null) value = '';
+                        else value = JSON.stringify(val, null, 2);
+                    }
+                    // Array
+                    else if (field.classList.contains('formatArray')) {
+                        if (!Array.isArray(val)) value = '';
+                        else value = val.join('\n');
+                    }
+                    // Unformatted (text, numbers, etc)
+                    else {
+                        if (val === undefined || val === null) value = '';
+                        else value = val;
+                    }
+
                     field.value = value;
                     field.placeholder = value;
                 }
